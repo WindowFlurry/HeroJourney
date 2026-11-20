@@ -114,7 +114,7 @@ func _refresh() -> void:
 		["武器特技", ["weapon_skill"]],
 		["角色 / 背包", ["character_menu"]],
 		["交互 / 拾取", ["interact"]],
-		["使用药水 / 草药", ["use_herb"]],
+		["使用草药", ["use_herb"]],
 		["打开制作", ["craft"]],
 		["物品栏", ["weapon_1", "weapon_2", "weapon_3", "weapon_4"]],
 		["暂停", ["pause"]],

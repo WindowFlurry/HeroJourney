@@ -8,23 +8,20 @@ const PROFESSION_CARDS := [
 	{
 		"id": "warrior",
 		"name": "战士",
-		"tag": "推荐新手",
 		"color": Color(0.96, 0.62, 0.3),
-		"body": "近战 / 承伤 / 击退\n生命 120  防御 3\n旧铁长剑\nZ：破阵冲锋\n右键：横斩",
+		"body": "近战 / 承伤 / 击退\n生命 120  防御 3\n旧铁长剑\n{dash}：破阵冲锋\n{weapon_skill}：横斩",
 	},
 	{
 		"id": "ranger",
 		"name": "游侠",
-		"tag": "机动",
 		"color": Color(0.56, 0.88, 0.44),
-		"body": "中距 / 机动 / 持续输出\n生命 95  防御 2\n猎弓\nZ：翻滚\n右键：三连射",
+		"body": "中距 / 机动 / 持续输出\n生命 95  防御 2\n猎弓\n{dash}：翻滚\n{weapon_skill}：三连射",
 	},
 	{
 		"id": "mage",
 		"name": "法师",
-		"tag": "爆发",
 		"color": Color(0.55, 0.72, 1.0),
-		"body": "远程 / 爆发 / 位移\n生命 85  防御 1\n见习法杖\nZ：闪现\n右键：蓄力火球",
+		"body": "远程 / 爆发 / 位移\n生命 85  防御 1\n见习法杖\n{dash}：闪现\n{weapon_skill}：蓄力火球",
 	},
 ]
 const CHARACTER_UI_SCENE: PackedScene = preload("res://scenes/prologue/character_ui.tscn")
@@ -51,17 +48,16 @@ var skill_panel: Panel
 var skill_name_label: Label
 var skill_key_label: Label
 var skill_fill: ColorRect
-var boss_panel: Panel
-var boss_bar: ProgressBar
-var boss_name_label: Label
 var dialog_panel: Panel
 var dialog_title: Label
 var dialog_body: Label
 var dialog_button: Button
 var select_overlay: Control
 var select_cards: HBoxContainer
+var select_title: Label
 var select_confirm: Button
 var selected_profession := ""
+var select_single := false
 var allow_profession_cancel := false
 var character_ui: Control
 var death_overlay: Control
@@ -69,6 +65,7 @@ var banner_label: Label
 var banner_subtitle: Label
 var dialog_active := false
 var select_active := false
+var test_menu_open := false
 var character_open := false
 var death_open := false
 var _notice_generation := 0
@@ -148,7 +145,6 @@ func _build() -> void:
 	_build_prompts()
 	_build_quickbar()
 	_build_skill()
-	_build_boss()
 	_build_banner()
 	_build_dialog()
 	_build_profession_select()
@@ -298,28 +294,6 @@ func _build_skill() -> void:
 	skill_panel.add_child(skill_fill)
 
 
-func _build_boss() -> void:
-	boss_panel = Panel.new()
-	boss_panel.position = Vector2(90, 33)
-	boss_panel.size = Vector2(300, 26)
-	boss_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	boss_panel.add_theme_stylebox_override("panel", _style(Color(0.045, 0.025, 0.02, 0.94), Color(0.8, 0.3, 0.14)))
-	boss_panel.visible = false
-	root.add_child(boss_panel)
-	boss_name_label = _label("裂翼兽", 7, Color(1.0, 0.68, 0.4))
-	boss_name_label.position = Vector2(4, 1)
-	boss_name_label.size = Vector2(292, 10)
-	boss_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	boss_panel.add_child(boss_name_label)
-	boss_bar = ProgressBar.new()
-	boss_bar.position = Vector2(6, 14)
-	boss_bar.size = Vector2(288, 8)
-	boss_bar.show_percentage = false
-	boss_bar.add_theme_stylebox_override("background", _style(Color(0.15, 0.035, 0.02, 1.0), Color(0.35, 0.09, 0.04), 2))
-	boss_bar.add_theme_stylebox_override("fill", _style(Color(0.76, 0.12, 0.045, 1.0), Color(1.0, 0.36, 0.12), 2))
-	boss_panel.add_child(boss_bar)
-
-
 func _build_banner() -> void:
 	banner_label = _label("", 20, Color(1.0, 0.76, 0.4))
 	banner_label.position = Vector2(40, 92)
@@ -370,16 +344,21 @@ func _build_profession_select() -> void:
 	dim.color = Color(0.015, 0.012, 0.01, 0.86)
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	select_overlay.add_child(dim)
-	var title := _label("选择你的职业", 15, Color(1.0, 0.82, 0.46))
-	title.position = Vector2(35, 24)
-	title.size = Vector2(410, 22)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	select_overlay.add_child(title)
+	select_title = _label("选择你的职业", 15, Color(1.0, 0.82, 0.46))
+	select_title.position = Vector2(35, 24)
+	select_title.size = Vector2(410, 22)
+	select_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	select_overlay.add_child(select_title)
 	var subtitle := _label("职业决定初始生命、防御、武器与战斗方式", 7, Color(0.78, 0.72, 0.62))
 	subtitle.position = Vector2(35, 48)
 	subtitle.size = Vector2(410, 12)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	select_overlay.add_child(subtitle)
+	var esc_hint := _label("[%s] 退出" % Settings.binding_text("pause"), 6, Color(0.68, 0.62, 0.52))
+	esc_hint.position = Vector2(370, 24)
+	esc_hint.size = Vector2(80, 12)
+	esc_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	select_overlay.add_child(esc_hint)
 	select_cards = HBoxContainer.new()
 	select_cards.position = Vector2(31, 70)
 	select_cards.size = Vector2(418, 132)
@@ -396,14 +375,12 @@ func _build_profession_select() -> void:
 		name_label.size = Vector2(120, 14)
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		card.add_child(name_label)
-		var tag := _label(str(card_data["tag"]), 5, Color(0.2, 0.12, 0.04))
-		tag.position = Vector2(43, 20)
-		tag.size = Vector2(48, 9)
-		tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		card.add_child(tag)
-		var body := _label(str(card_data["body"]), 6, Color(0.9, 0.86, 0.77))
-		body.position = Vector2(8, 34)
-		body.size = Vector2(117, 86)
+		var body_text := str(card_data["body"])
+		body_text = body_text.replace("{dash}", Settings.binding_text("dash"))
+		body_text = body_text.replace("{weapon_skill}", Settings.binding_text("weapon_skill"))
+		var body := _label(body_text, 6, Color(0.9, 0.86, 0.77))
+		body.position = Vector2(8, 24)
+		body.size = Vector2(117, 96)
 		body.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		card.add_child(body)
@@ -445,7 +422,7 @@ func _build_death() -> void:
 	title.size = Vector2(300, 32)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	death_overlay.add_child(title)
-	var hint := _label("在广场检查点复活，职业与物品不会丢失", 7, Color(0.9, 0.82, 0.7))
+	var hint := _label("在最近的检查点复活，职业与物品不会丢失", 7, Color(0.9, 0.82, 0.7))
 	hint.position = Vector2(90, 128)
 	hint.size = Vector2(300, 15)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -550,8 +527,20 @@ func open_profession_select(current_id: String = "", allow_cancel: bool = false)
 		return
 	selected_profession = current_id
 	allow_profession_cancel = allow_cancel
+	select_single = not current_id.is_empty()
 	select_active = true
 	select_overlay.visible = true
+	var stone_name := ""
+	for card_data in PROFESSION_CARDS:
+		if str(card_data["id"]) == current_id:
+			stone_name = str(card_data["name"])
+	select_title.text = ("%s石碑" % stone_name) if select_single and not stone_name.is_empty() else "选择你的职业"
+	for i in select_cards.get_child_count():
+		var card := select_cards.get_child(i) as Control
+		card.visible = not select_single or str(PROFESSION_CARDS[i]["id"]) == current_id
+	select_cards.position = Vector2(0 if select_single else 31, 70)
+	select_cards.size = Vector2(480 if select_single else 418, 132)
+	select_cards.alignment = BoxContainer.ALIGNMENT_CENTER if select_single else BoxContainer.ALIGNMENT_BEGIN
 	var cancel_button := select_overlay.get_node_or_null("Cancel") as Button
 	if cancel_button != null:
 		cancel_button.visible = allow_cancel
@@ -601,8 +590,8 @@ func _confirm_profession() -> void:
 	profession_selected.emit(selected_profession)
 
 
-func _cancel_profession() -> void:
-	if not allow_profession_cancel:
+func _cancel_profession(force: bool = false) -> void:
+	if not allow_profession_cancel and not force:
 		return
 	select_active = false
 	select_overlay.visible = false
@@ -653,7 +642,6 @@ func refresh_quick_slots() -> void:
 
 func _short_item_name(value: String) -> String:
 	match value:
-		"初级生命药水": return "药水"
 		"旧铁长剑": return "长剑"
 		"见习法杖": return "法杖"
 		"见习者皮甲": return "皮甲"
@@ -673,22 +661,6 @@ func _refresh_skill() -> void:
 	var cooldown := float(player.get("dash_cd_timer"))
 	var total := maxf(float(player.call("get_skill_cooldown")), 0.01)
 	skill_fill.size.x = 78.0 * clampf(1.0 - cooldown / total, 0.0, 1.0)
-
-
-func show_boss(name: String, maximum: int) -> void:
-	boss_name_label.text = name
-	boss_bar.max_value = maximum
-	boss_bar.value = maximum
-	boss_panel.visible = true
-
-
-func update_boss(current: int, maximum: int) -> void:
-	boss_bar.max_value = maximum
-	boss_bar.value = current
-
-
-func hide_boss() -> void:
-	boss_panel.visible = false
 
 
 func set_attack_tint(enabled: bool) -> void:
@@ -733,8 +705,14 @@ func _on_revive_pressed() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("interact") and dialog_active:
+	if test_menu_open:
+		return
+	if dialog_active and (event.is_action_pressed("interact") or event.is_action_pressed("ui_accept")):
 		close_dialog()
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_action_pressed("pause") and select_active:
+		_cancel_profession(true)
 		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("character_menu") and not death_open and not dialog_active and not select_active:

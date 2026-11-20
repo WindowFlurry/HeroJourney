@@ -203,15 +203,15 @@ func _area_display_name() -> String:
 		return ""
 	for zone in get_tree().get_nodes_in_group("SafeZones"):
 		if zone.has_method("contains_point") and bool(zone.call("contains_point", player.global_position)):
-			if str(zone.get("location_name")) == "第二营地":
-				return "前哨营地"
-			return "营地"
+			return str(zone.get("location_name"))
 	var p: Vector2 = player.global_position
 	if p.y > 1300.0 and p.x > 140.0 and p.x < 760.0:
-		return "孤岛"
+		return "白桦林地深处"
 	if p.y >= 800.0:
-		return "荒原"
-	return "野外"
+		return "白桦林地外围"
+	if p.y >= 200.0:
+		return "白桦林地"
+	return "白鹿边境"
 
 
 func _update_area_label() -> void:
@@ -562,7 +562,6 @@ func _refresh_quickbar() -> void:
 
 func _short_item_name(value: String) -> String:
 	match value:
-		"初级生命药水": return "药水"
 		"旧铁长剑": return "长剑"
 		"见习法杖": return "法杖"
 		"见习者皮甲": return "皮甲"
@@ -641,17 +640,19 @@ func _refresh_objective() -> void:
 
 
 func _compute_objective() -> String:
+	if Global.first_stele_lit:
+		return "白桦林地已净化"
 	if Global.boss_defeated:
-		return "第一关完成"
+		return "点燃誓火石碑"
 	if Global.mask_equipped:
-		return "击败腐根兽"
+		return "击败裂牙格鲁姆"
 	if Global.bridge_repaired:
 		if Global.mask_crafted or int(Global.inventory.get("mask", 0)) > 0:
-			return "戴上灰烬护符，穿过迷雾"
+			return "戴上灰烬护符，穿过龙焰烟尘"
 		return "制作灰烬护符"
 	if int(Global.inventory.get("material", 0)) > 0:
-		return "到断桥处按 F 修建"
-	return "收集材料，合成建材"
+		return "到前哨木桥按 F 修复木桥"
+	return "收集建材，修复前哨木桥"
 
 
 func _refresh_stats() -> void:
@@ -726,14 +727,11 @@ func _refresh_heal_hint() -> void:
 	if player == null or heal_root == null:
 		return
 	var herbs := int(Global.inventory.get("herb", 0))
-	var potions := int(Global.inventory.get("potion", 0))
-	var use_potion := potions > 0 and _has_profession()
-	var heal_count := potions if use_potion else herbs
-	var can_heal := heal_count > 0 and int(player.health) < int(player.max_health) and not bool(player.dead)
+	var can_heal := herbs > 0 and int(player.health) < int(player.max_health) and not bool(player.dead)
 	var show := can_heal and not crafting_open and not character_open
 	heal_root.visible = show
 	if heal_text_label != null:
-		heal_text_label.text = "药水" if use_potion else "回血"
+		heal_text_label.text = "草药"
 
 	var holding := Input.is_action_pressed("use_herb")
 	var used := bool(player.herb_hold_used)

@@ -11,15 +11,12 @@ radius = 26.0
 
 [node name="CampLog" type="StaticBody2D"]
 script = ExtResource("2_script")
-item_title = "营地主日志"
-item_text = "我们抵达了岛屿南岸。
-整片大陆的黑雾污染，全部源自海对岸的孤岛。
-那座岛上栖息着畸变的源头巨兽，一切异变都是它带来的。
-我们搭建跨海桥梁，准备彻底终结污染。
-但在桥梁即将完工时，对岸的怪物发动了袭击。
-桥梁断裂，队伍溃散，所有人失联。
-若未来有人抵达此处：收集散落的桥梁构件，重铸大桥，终结这场灾难。"
-prompt = "按 F 阅读营地主日志"
+item_title = "银誓营地记录"
+item_text = "我们抵达了白鹿边境。
+北面的白桦林被龙焰吞没，翼兽在烟尘中筑巢。
+前哨木桥在袭击中断裂，队伍失散。
+后来者：收集散落的建材，修复木桥，前往白桦林地深处。"
+prompt = "按 F 阅读营地记录"
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 position = Vector2(0, -16)

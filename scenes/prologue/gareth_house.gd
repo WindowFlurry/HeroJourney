@@ -38,12 +38,21 @@ func build_house() -> void:
 
 
 func refresh_objective() -> void:
-	if Global.gareth_talked:
-		set_objective("前往山谷选择职业")
-		set_tutorial("离开屋子，沿村庄北侧的山路前往山谷")
-	else:
+	if not Global.gareth_talked:
 		set_objective("与加雷斯爵士交谈")
 		set_tutorial("[%s] 与加雷斯交谈" % Settings.binding_text("interact"))
+	elif Global.profession.is_empty():
+		set_objective("前往山谷选择职业")
+		set_tutorial("离开屋子，沿村庄中段的山路一直向北前往山谷")
+	elif not Global.tutorial_weapon_skill_done:
+		set_objective("返回山谷完成训练")
+		set_tutorial("回到山谷，完成职业技能与武器特技训练")
+	elif not Global.prologue_chest_opened:
+		set_objective("前往铁匠铺领取补给")
+		set_tutorial("铁匠铺位于村庄西南侧")
+	else:
+		set_objective("前往东门")
+		set_tutorial("沿村庄道路向东前往东门")
 
 
 func on_scene_process(_delta: float) -> void:
@@ -64,11 +73,15 @@ func on_scene_process(_delta: float) -> void:
 func _talk_to_gareth() -> void:
 	dialog_context = "intro"
 	Global.gareth_talked = true
-	hud.call(
-		"show_dialog",
-		"加雷斯爵士",
-		"丰收祭开始了。先去山谷触摸职业石碑，确定你今后的战斗方式。完成训练后，铁匠奥托会为你准备好补给。"
-	)
+	var text := "丰收祭开始了。先去山谷触摸职业石碑，确定你今后的战斗方式。完成训练后，铁匠奥托会为你准备好补给。"
+	if Global.prologue_chest_opened:
+		text = "补给已经备好。沿东侧道路去东门，那里需要你。"
+	elif not Global.profession.is_empty():
+		if not Global.tutorial_weapon_skill_done:
+			text = "训练还没结束。回山谷把职业技能和武器特技练熟。"
+		else:
+			text = "去铁匠铺找奥托领取补给，然后前往东门。"
+	hud.call("show_dialog", "加雷斯爵士", text)
 	refresh_objective()
 	SaveGame.save_game("加雷斯的屋子")
 

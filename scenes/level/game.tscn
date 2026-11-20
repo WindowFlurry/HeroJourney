@@ -42,6 +42,7 @@
 [ext_resource type="PackedScene" path="res://scenes/level/field_details.tscn" id="45_details"]
 [ext_resource type="PackedScene" path="res://scenes/level/barren_ground.tscn" id="51_barren"]
 [ext_resource type="Script" path="res://scenes/level/ambience.gd" id="52_ambience"]
+[ext_resource type="Script" path="res://scenes/level/game.gd" id="60_forest"]
 [ext_resource type="PackedScene" path="res://scenes/level/wasteland_props.tscn" id="53_waste_props"]
 [ext_resource type="PackedScene" path="res://scenes/level/crow.tscn" id="54_crow"]
 
@@ -1038,6 +1039,7 @@ shadow_size = 2
 font_names = PackedStringArray("Microsoft YaHei", "Microsoft YaHei UI", "SimHei", "Noto Sans CJK SC")
 
 [node name="Game" type="Node2D" unique_id=1335413557]
+script = ExtResource("60_forest")
 
 [node name="Layers" type="Node2D" parent="." unique_id=1153957375]
 

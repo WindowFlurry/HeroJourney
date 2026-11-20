@@ -52,7 +52,7 @@ func refresh_objective() -> void:
 		])
 	else:
 		set_objective("完成山谷训练")
-		set_tutorial("先返回广场选择职业并完成训练")
+		set_tutorial("先返回山谷选择职业并完成训练")
 
 
 func on_scene_process(_delta: float) -> void:
@@ -81,13 +81,13 @@ func _open_chest() -> void:
 	if int(Global.inventory.get("recruit_armor", 0)) <= 0 and str(Global.equipment["chest"].get("id", "")).is_empty():
 		Global.add_item("recruit_armor", 1)
 		Global.move_item_to_equipment("chest", {"kind": "inventory_item", "item_id": "recruit_armor"})
-	Global.add_item("potion", 2)
+	Global.add_item("herb", 2)
 	if int(Global.inventory.get("silver_oath_sigil", 0)) <= 0:
 		Global.add_item("silver_oath_sigil", 1)
 	Global.ensure_hotbar_defaults()
 	player.call("equip_base_armor")
 	player.set_spawn_position(door_position + Vector2(0, -42))
-	hud.call("show_notice", "获得见习者皮甲、2瓶生命药水与银誓徽记", 3.0)
+	hud.call("show_notice", "获得见习者皮甲、2株草药与银誓徽记", 3.0)
 	SaveGame.save_game("灰杉村铁匠铺")
 	refresh_objective()
 

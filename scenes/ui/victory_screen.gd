@@ -93,7 +93,7 @@ func _build() -> void:
 	inner.add_theme_stylebox_override("panel", _style(Color(0, 0, 0, 0), Color(0.35, 0.29, 0.18, 0.4)))
 	_panel.add_child(inner)
 
-	var title := _label("通关成功", 16, Color(1.0, 0.86, 0.5))
+	var title := _label("第一关完成", 16, Color(1.0, 0.86, 0.5))
 	title.position = Vector2(0, 28)
 	title.size = Vector2(200, 24)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -170,7 +170,7 @@ func _continue_exploring() -> void:
 
 
 func _back_to_menu() -> void:
-	SaveGame.save_game("Boss")
+	SaveGame.save_game("白桦林地")
 	_root.visible = false
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://scenes/ui/main_menu.tscn")

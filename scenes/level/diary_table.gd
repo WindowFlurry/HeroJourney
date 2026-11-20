@@ -32,6 +32,6 @@ func _process(_delta: float) -> void:
 	if hud == null:
 		return
 	if not bool(hud.get("diary_open")):
-		hud.call("show_hint", "按 F 查看日记")
+		hud.call("show_hint", "按 F 查看手记")
 		if Input.is_action_just_pressed("interact"):
 			hud.call("open_diary")

@@ -213,7 +213,7 @@ func _on_continue() -> void:
 	if SaveGame.load_into_global():
 		var scene_path := SaveGame.pending_scene_path
 		if scene_path.is_empty():
-			scene_path = "res://scenes/prologue/player_house.tscn"
+			scene_path = "res://scenes/prologue/grayfir_village.tscn"
 		get_tree().change_scene_to_file(scene_path)
 
 
@@ -229,7 +229,7 @@ func _start_new_game() -> void:
 	Global.reset_state()
 	SaveGame.pending_player_data = {}
 	Global.prologue_started = true
-	get_tree().change_scene_to_file("res://scenes/prologue/player_house.tscn")
+	get_tree().change_scene_to_file("res://scenes/prologue/grayfir_village.tscn")
 
 
 func _open_settings() -> void:

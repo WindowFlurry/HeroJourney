@@ -13,7 +13,6 @@ const ITEM_NAMES := {
 	"vine": "焦枯藤蔓",
 	"material": "建材",
 	"mask": "灰烬护符",
-	"potion": "初级生命药水",
 	"warrior_weapon": "旧铁长剑",
 	"ranger_weapon": "猎弓",
 	"mage_weapon": "见习法杖",
@@ -37,7 +36,6 @@ var inventory := {
 	"vine": 0,
 	"material": 0,
 	"mask": 0,
-	"potion": 0,
 	"warrior_weapon": 0,
 	"ranger_weapon": 0,
 	"mage_weapon": 0,
@@ -74,8 +72,11 @@ var prologue_chest_opened := false
 var village_attack_started := false
 var wave1_cleared := false
 var wave2_cleared := false
-var riftwing_defeated := false
+var east_gate_cleared := false
 var prologue_scene_spawn := ""
+var prologue_travel := false
+var guild_registered := false
+var first_stele_lit := false
 
 
 func _ready() -> void:
@@ -306,7 +307,7 @@ func ensure_hotbar_defaults(fill_empty: bool = true) -> void:
 			"mage": "mage_weapon",
 		}.get(profession, ""),
 		"recruit_armor",
-		"potion",
+		"herb",
 		"silver_oath_sigil",
 	]
 	if fill_empty:
@@ -349,6 +350,10 @@ func apply_save_data(data: Dictionary) -> void:
 	if saved_inventory is Dictionary:
 		for id in inventory:
 			inventory[id] = int(saved_inventory.get(id, 0))
+		# 旧存档中的药水统一折算为草药
+		var legacy_potions := int(saved_inventory.get("potion", 0))
+		if legacy_potions > 0:
+			inventory["herb"] = mini(inventory["herb"] + legacy_potions, item_cap("herb"))
 	var flags = data.get("flags", {})
 	if flags is Dictionary:
 		bridge_repaired = bool(flags.get("bridge_repaired", false))
@@ -369,7 +374,9 @@ func apply_save_data(data: Dictionary) -> void:
 		village_attack_started = bool(flags.get("village_attack_started", false))
 		wave1_cleared = bool(flags.get("wave1_cleared", false))
 		wave2_cleared = bool(flags.get("wave2_cleared", false))
-		riftwing_defeated = bool(flags.get("riftwing_defeated", false))
+		east_gate_cleared = bool(flags.get("east_gate_cleared", flags.get("riftwing_defeated", false)))
+		guild_registered = bool(flags.get("guild_registered", false))
+		first_stele_lit = bool(flags.get("first_stele_lit", false))
 	var saved_hotbar = data.get("hotbar", [])
 	hotbar = ["", "", "", ""]
 	hotbar_counts = [0, 0, 0, 0]
@@ -379,6 +386,8 @@ func apply_save_data(data: Dictionary) -> void:
 	if has_saved_hotbar:
 		for i in mini(saved_hotbar.size(), HOTBAR_SIZE):
 			hotbar[i] = str(saved_hotbar[i])
+			if hotbar[i] == "potion":
+				hotbar[i] = "herb"
 		var saved_counts = data.get("hotbar_counts", [])
 		if saved_counts is Array and not saved_counts.is_empty():
 			for i in mini(saved_counts.size(), HOTBAR_SIZE):
@@ -435,8 +444,11 @@ func reset_state() -> void:
 	village_attack_started = false
 	wave1_cleared = false
 	wave2_cleared = false
-	riftwing_defeated = false
+	east_gate_cleared = false
+	guild_registered = false
+	first_stele_lit = false
 	prologue_scene_spawn = ""
+	prologue_travel = false
 	inventory_changed.emit()
 
 func find_reachable_position(pos: Vector2, max_radius: float = 32.0) -> Vector2:

@@ -17,7 +17,7 @@ const REGION_TYPES := [
 	[RANGED, ELITE],
 ]
 # 区域血量倍率：越靠近 Boss 越硬
-const REGION_HP_MULT := [1.0, 1.55, 2.0]
+const REGION_HP_MULT := [1.15, 1.55, 2.0]
 const INITIAL_SPAWNS := [
 	{"type": MELEE, "point": 0},
 	{"type": MELEE, "point": 1},

@@ -9,14 +9,14 @@ size = Vector2(18, 6)
 [sub_resource type="CircleShape2D" id="CircleShape2D_diary"]
 radius = 22.0
 
-[node name="DespairDiary" type="StaticBody2D"]
+[node name="KnightNotes" type="StaticBody2D"]
 script = ExtResource("2_script")
-item_title = "队员绝望日记"
-item_text = "黑雾越来越浓。
-不止动物变异，我们的神智也开始模糊。
-队友陆续失踪，只剩下寥寥几人。
-断桥之外，是唯一的答案，也是唯一的归宿。"
-prompt = "按 F 阅读队员绝望日记"
+item_title = "老骑士手记"
+item_text = "龙焰烧过的地方，草木会发黑，野兽会发狂。
+银誓的封印正在碎裂。
+若后来者读到这些字：去白桦林地深处，点燃誓火石碑。
+别让赤冠之龙再睁开眼。"
+prompt = "按 F 阅读老骑士手记"
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 position = Vector2(0, -12)

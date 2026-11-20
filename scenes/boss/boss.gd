@@ -22,14 +22,17 @@ const WARNING_SQUARE := preload("res://graphics/boss/warning_square.png")
 const WARNING_LINE := preload("res://graphics/boss/warning_line.png")
 const CLAW_IMPACT := preload("res://graphics/boss/claw_impact.png")
 
-const COOLDOWN := {"claw": 4.5, "orb": 6.0, "root": 7.0}
-const WINDUP := {"claw": 0.8, "orb": 1.0, "root": 0.7}
+const COOLDOWN := {"claw": 4.5, "orb": 6.0, "root": 7.0, "slam": 8.5}
+const WINDUP := {"claw": 0.8, "orb": 1.0, "root": 0.7, "slam": 1.1}
 
 @export var max_health := 420
 @export var move_speed := 22.0
 @export var claw_damage := 35
 @export var orb_damage := 22
 @export var root_damage := 12
+@export var slam_damage := 18
+@export var slam_radius := 125.0
+@export var slam_knockback := 280.0
 @export var claw_radius := 28.0
 @export var body_center := Vector2(0, -85)
 @export var body_extents := Vector2(62, 85)
@@ -51,7 +54,7 @@ var skill := ""
 var cast_timer := 0.0
 var recover_timer := 0.0
 var decision_timer := 1.0
-var cooldowns := {"claw": 0.0, "orb": 0.0, "root": 0.0}
+var cooldowns := {"claw": 0.0, "orb": 0.0, "root": 0.0, "slam": 0.0}
 var direction_row := ROW_FRONT
 var anim_timer := 0.0
 var walk_frame := 0
@@ -174,6 +177,8 @@ func _try_start_skill() -> void:
 		available.append("orb")
 	if cooldowns["root"] <= 0.0:
 		available.append("root")
+	if cooldowns["slam"] <= 0.0 and distance <= 150.0:
+		available.append("slam")
 	if available.is_empty():
 		decision_timer = 0.6
 		return
@@ -200,6 +205,9 @@ func _start_skill(s: String) -> void:
 		"root":
 			_prepare_roots()
 			_set_pose(F_ROOT, cast_timer + 0.2)
+		"slam":
+			_show_slam_warning()
+			_set_pose(F_CLAW_UP, cast_timer + 0.2)
 
 
 func _update_windup(delta: float) -> void:
@@ -225,6 +233,8 @@ func _execute_skill() -> void:
 			_do_orb()
 		"root":
 			_do_roots()
+		"slam":
+			_do_slam()
 	cooldowns[finished] = float(COOLDOWN[finished])
 	if finished == "orb":
 		_show_tumor_glow(false)
@@ -255,6 +265,19 @@ func _do_orb() -> void:
 	orb.global_position = spawn
 	get_parent().add_child(orb)
 	orb.global_position = spawn
+
+
+func _do_slam() -> void:
+	_spawn_impact(global_position + Vector2(0, -10))
+	if player != null:
+		var offset: Vector2 = player.global_position - global_position
+		if offset.length() <= slam_radius:
+			var dir := offset.normalized()
+			if dir == Vector2.ZERO:
+				dir = Vector2.DOWN
+			player.call("take_damage", slam_damage, true)
+			player.call("apply_knockback", dir, slam_knockback, 0.28)
+	Sfx.play("enemy_strike", 0.7, 0.0)
 
 
 func _do_roots() -> void:
@@ -294,6 +317,17 @@ func _prepare_roots() -> void:
 		ground.add_child(w)
 		w.global_position = p
 		root_warnings.append(w)
+
+
+func _show_slam_warning() -> void:
+	_clear_warnings()
+	var ground := _ground_root()
+	warning = Sprite2D.new()
+	warning.texture = WARNING_SQUARE
+	warning.scale = Vector2(4.4, 4.4)
+	warning.z_index = 2
+	ground.add_child(warning)
+	warning.global_position = global_position + Vector2(0, -10)
 
 
 func _show_square_warning(pos: Vector2) -> void:
@@ -441,7 +475,7 @@ func _die() -> void:
 	active = false
 	Global.boss_defeated = true
 	Global.enemy_killed.emit()
-	SaveGame.save_game("Boss")
+	SaveGame.save_game("白桦林地")
 	state = "dying"
 	remove_from_group("Enemies")
 	_clear_warnings()
@@ -481,10 +515,7 @@ func _finish_death() -> void:
 	_hide_glows()
 	if arena_curtain != null and arena_curtain.has_method("lift"):
 		arena_curtain.call("lift")
-	await get_tree().create_timer(1.0).timeout
-	if not is_inside_tree():
-		return
-	get_tree().call_group("VictoryScreen", "show_victory")
+	# 胜利改由白桦林地的誓火石碑触发
 
 
 func _on_player_died() -> void:
@@ -497,7 +528,7 @@ func _reset_fight() -> void:
 	active = false
 	state = "idle"
 	health = max_health
-	cooldowns = {"claw": 0.0, "orb": 0.0, "root": 0.0}
+	cooldowns = {"claw": 0.0, "orb": 0.0, "root": 0.0, "slam": 0.0}
 	decision_timer = 1.0
 	pose_col = -1
 	pose_timer = 0.0
@@ -540,7 +571,7 @@ func _build_ui() -> void:
 	ui_panel.add_theme_stylebox_override("panel", style)
 	root.add_child(ui_panel)
 	var name_label := Label.new()
-	name_label.text = "畸变腐根兽"
+	name_label.text = "裂牙格鲁姆"
 	name_label.position = Vector2(0, 1)
 	name_label.size = Vector2(240, 12)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

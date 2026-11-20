@@ -542,7 +542,7 @@ func _update_animation() -> void:
 
 
 func _keep_out_of_boss_island() -> void:
-	# 普通怪不能进入 Boss 岛（桥可以让玩家通过，但怪只能在桥外停下）
+	# 普通怪不能进入白桦林地深处（桥可以让玩家通过，但怪只能在桥外停下）
 	if global_position.y > 1300.0 and global_position.x > 140.0 and global_position.x < 760.0:
 		global_position.y = 1298.0
 		velocity = Vector2.ZERO

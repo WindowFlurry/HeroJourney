@@ -49,7 +49,7 @@ func on_scene_ready() -> void:
 func _process(delta: float) -> void:
 	if transitioning:
 		return
-	if bool(hud.get("dialog_active")) or bool(hud.get("select_active")) or bool(hud.get("character_open")) or bool(hud.get("death_open")):
+	if bool(hud.get("dialog_active")) or bool(hud.get("select_active")) or bool(hud.get("test_menu_open")) or bool(hud.get("character_open")) or bool(hud.get("death_open")):
 		hud.call("clear_interaction")
 		return
 	on_scene_process(delta)
@@ -61,11 +61,15 @@ func on_scene_process(_delta: float) -> void:
 
 func resolve_spawn(default_position: Vector2, entries: Dictionary = {}) -> void:
 	var spawn_id := Global.prologue_scene_spawn
-	if not spawn_id.is_empty() and entries.has(spawn_id):
+	if Global.prologue_travel:
+		# 场景切换时按目标场景的入口/默认点出生，不能沿用上一个场景的坐标
+		player.global_position = entries.get(spawn_id, default_position)
+	elif not spawn_id.is_empty() and entries.has(spawn_id):
 		player.global_position = entries[spawn_id]
 	elif not loaded_from_save:
 		player.global_position = default_position
 	Global.prologue_scene_spawn = ""
+	Global.prologue_travel = false
 
 
 func travel_to(scene_path: String, spawn_id: String = "") -> void:
@@ -74,6 +78,7 @@ func travel_to(scene_path: String, spawn_id: String = "") -> void:
 	transitioning = true
 	SaveGame.pending_player_data = player.call("get_save_data")
 	Global.prologue_scene_spawn = spawn_id
+	Global.prologue_travel = true
 	get_tree().change_scene_to_file(scene_path)
 
 

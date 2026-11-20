@@ -50,6 +50,7 @@ func _ensure_default_actions() -> void:
 	_ensure_key_action("pause", KEY_ESCAPE)
 	_ensure_key_action("dash", KEY_Z)
 	_ensure_key_action("character_menu", KEY_E)
+	_ensure_key_action("debug_jump", KEY_TAB)
 	_ensure_mouse_action("weapon_skill", MOUSE_BUTTON_RIGHT)
 
 

@@ -101,6 +101,9 @@ var has_sword := false
 var current_weapon := "fist"
 var herb_hold := 0.0
 var herb_hold_used := false
+var knockback_timer := 0.0
+var knockback_dir := Vector2.ZERO
+var knockback_speed := 260.0
 var shake_time := 0.0
 var shake_strength := 0.0
 var hitstop_active := false
@@ -176,6 +179,12 @@ func _physics_process(delta: float) -> void:
 	if input_locked:
 		direction = Vector2.ZERO
 		velocity = Vector2.ZERO
+		animation()
+		return
+	if knockback_timer > 0.0:
+		knockback_timer -= delta
+		velocity = knockback_dir * knockback_speed
+		move_and_slide()
 		animation()
 		return
 	if mage_charge_timer > 0.0:
@@ -378,8 +387,8 @@ func _use_selected_quick_action() -> void:
 		return
 	if item_id == get_profession_weapon_item():
 		_use_profession_weapon_skill()
-	elif item_id == "potion":
-		_use_potion(true)
+	elif item_id == "herb":
+		_use_herb(true)
 	else:
 		var hud := get_tree().get_first_node_in_group("HUD")
 		if hud != null:
@@ -484,6 +493,12 @@ func get_skill_name() -> String:
 		"sword":
 			return "连击"
 	return "冲刺"
+
+
+func get_weapon_skill_name() -> String:
+	if not profession.is_empty():
+		return str(PROFESSION_DATA[profession]["weapon_skill"])
+	return ""
 
 
 func get_skill_cooldown() -> float:
@@ -608,14 +623,11 @@ func _dash_damage() -> void:
 		if dash_hit.has(id):
 			continue
 		var hit_center := enemy_node.global_position
-		var is_boss_target: bool = enemy_node.get("is_boss") == true
 		if enemy_node.is_in_group("TrainingDummies"):
 			hit_center += Vector2(0, -16)
-		elif is_boss_target:
-			hit_center += Vector2(0, -66)
 		else:
 			hit_center += Vector2(0, -11)
-		if hit_center.distance_to(global_position) > dash_hit_radius + (24.0 if is_boss_target else 3.0):
+		if hit_center.distance_to(global_position) > dash_hit_radius + 3.0:
 			continue
 		dash_hit[id] = true
 		if enemy_node.has_method("take_damage_from"):
@@ -954,39 +966,18 @@ func _spawn_campfire_plus() -> void:
 	t.chain().tween_callback(plus.queue_free)
 
 
-func _use_herb() -> void:
-	if not profession.is_empty() and int(Global.inventory.get("potion", 0)) > 0:
-		_use_potion(false)
-		return
-	if health >= max_health:
-		return
-	if int(Global.inventory.get("herb", 0)) <= 0:
-		return
-	Global.remove_items({"herb": 1})
-	var healed := mini(health + herb_heal_amount, max_health) - health
-	health = mini(health + herb_heal_amount, max_health)
-	health_changed.emit(health, max_health)
-	Global.spawn_float_text(global_position + Vector2(0, -30), "+%d" % healed, Color(0.5, 1.0, 0.6), 9, 16.0, 0.6)
-	Sfx.play("heal")
-	_show_heal_effect()
-
-
-func _use_potion(from_hotbar: bool) -> void:
+func _use_herb(from_hotbar: bool = false) -> void:
 	if dead or health >= max_health:
-		return
-	var available := int(Global.hotbar_counts[selected_quick_slot]) if from_hotbar else int(Global.inventory.get("potion", 0))
-	if available <= 0:
-		var hud := get_tree().get_first_node_in_group("HUD")
-		if hud != null:
-			hud.call("show_notice", "没有初级生命药水")
 		return
 	if from_hotbar:
 		if not Global.consume_hotbar_item(selected_quick_slot, 1):
 			return
 	else:
-		Global.remove_items({"potion": 1})
-	var healed := mini(health + 30, max_health) - health
-	health = mini(health + 30, max_health)
+		if int(Global.inventory.get("herb", 0)) <= 0:
+			return
+		Global.remove_items({"herb": 1})
+	var healed := mini(health + herb_heal_amount, max_health) - health
+	health = mini(health + herb_heal_amount, max_health)
 	health_changed.emit(health, max_health)
 	Global.spawn_float_text(global_position + Vector2(0, -30), "+%d" % healed, Color(0.5, 1.0, 0.6), 9, 16.0, 0.6)
 	Sfx.play("heal")
@@ -1032,6 +1023,14 @@ func set_input_locked(locked: bool) -> void:
 	if locked:
 		direction = Vector2.ZERO
 		velocity = Vector2.ZERO
+
+
+func apply_knockback(dir: Vector2, force_speed: float = 260.0, duration: float = 0.28) -> void:
+	if dead or input_locked or dash_timer > 0.0 or dir == Vector2.ZERO:
+		return
+	knockback_dir = dir.normalized()
+	knockback_speed = force_speed
+	knockback_timer = duration
 
 
 func get_save_data() -> Dictionary:
@@ -1093,6 +1092,20 @@ func debug_set_health(value: int) -> void:
 		return
 	health = clampi(value, 1, max_health)
 	health_changed.emit(health, max_health)
+
+
+func heal_by(amount: int) -> void:
+	if dead or amount <= 0:
+		return
+	var before := health
+	health = mini(health + amount, max_health)
+	var healed := health - before
+	if healed <= 0:
+		return
+	health_changed.emit(health, max_health)
+	Global.spawn_float_text(global_position + Vector2(0, -30), "+%d" % healed, Color(0.5, 1.0, 0.6), 9, 16.0, 0.6)
+	Sfx.play("heal")
+	_show_heal_effect()
 
 
 func _flash_damage() -> void:

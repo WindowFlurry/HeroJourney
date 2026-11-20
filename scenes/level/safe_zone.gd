@@ -2,7 +2,7 @@ extends Area2D
 
 @export var checkpoint := false
 @export var respawn_marker_path: NodePath
-@export var location_name := "营地"
+@export var location_name := "银誓旧营地"
 
 
 func _ready() -> void:

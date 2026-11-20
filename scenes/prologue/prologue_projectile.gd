@@ -166,16 +166,12 @@ func _spawn_burst() -> void:
 func _enemy_center(enemy: Node2D) -> Vector2:
 	if enemy.is_in_group("TrainingDummies"):
 		return enemy.global_position + Vector2(0, -16)
-	if enemy.get("is_boss") == true:
-		return enemy.global_position + Vector2(0, -66)
 	return enemy.global_position + Vector2(0, -11)
 
 
 func _enemy_hit_radius(enemy: Node2D) -> float:
 	if enemy.is_in_group("TrainingDummies"):
 		return radius + 11.0
-	if enemy.get("is_boss") == true:
-		return radius + 26.0
 	return radius + 9.0
 
 

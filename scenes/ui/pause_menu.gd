@@ -145,6 +145,7 @@ func _hud_blocks_pause(hud: Node) -> bool:
 		"character_open",
 		"dialog_active",
 		"select_active",
+		"test_menu_open",
 		"death_open",
 	]:
 		if hud.get(property_name) == true:

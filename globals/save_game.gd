@@ -66,7 +66,9 @@ func save_game(location: String) -> void:
 			"village_attack_started": Global.village_attack_started,
 			"wave1_cleared": Global.wave1_cleared,
 			"wave2_cleared": Global.wave2_cleared,
-			"riftwing_defeated": Global.riftwing_defeated,
+			"east_gate_cleared": Global.east_gate_cleared,
+			"guild_registered": Global.guild_registered,
+			"first_stele_lit": Global.first_stele_lit,
 		},
 	}
 	var file := FileAccess.open(PATH, FileAccess.WRITE)
@@ -91,10 +93,11 @@ func load_into_global() -> bool:
 	if int(data.get("version", 1)) < CURRENT_VERSION:
 		return false
 	Global.apply_save_data(data)
+	Global.prologue_travel = false
 	pending_player_data = data.get("player", {})
-	pending_scene_path = str(data.get("scene", "res://scenes/prologue/player_house.tscn"))
+	pending_scene_path = str(data.get("scene", "res://scenes/prologue/grayfir_village.tscn"))
 	if pending_scene_path.is_empty() or not ResourceLoader.exists(pending_scene_path):
-		pending_scene_path = "res://scenes/prologue/player_house.tscn"
+		pending_scene_path = "res://scenes/prologue/grayfir_village.tscn"
 	return true
 
 

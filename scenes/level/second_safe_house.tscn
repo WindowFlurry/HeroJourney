@@ -23,7 +23,7 @@ monitorable = false
 script = ExtResource("2_teb5d")
 checkpoint = true
 respawn_marker_path = NodePath("RespawnPoint")
-location_name = "第二营地"
+location_name = "前哨营地"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="SafeZone" unique_id=280881114]
 shape = SubResource("RectangleShape2D_0tkyl")

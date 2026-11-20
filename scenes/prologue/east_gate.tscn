@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://ck743td1ejyxn"]
 
-[ext_resource type="Script" path="res://scenes/prologue/east_gate.gd" id="1_scene"]
+[ext_resource type="Script" uid="uid://daenoopjm1078" path="res://scenes/prologue/east_gate.gd" id="1_scene"]
 
-[node name="GrayfirEastGate" type="Node2D"]
+[node name="GrayfirEastGate" type="Node2D" unique_id=444157999]
 script = ExtResource("1_scene")

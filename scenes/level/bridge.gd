@@ -74,7 +74,7 @@ func _process(_delta: float) -> void:
 	if near_repair and not repaired:
 		if int(Global.inventory.get("material", 0)) > 0:
 			if hud != null:
-				hud.call("show_hint", "按 F 修建断桥")
+				hud.call("show_hint", "按 F 修复前哨木桥")
 			if Input.is_action_just_pressed("interact"):
 				_repair_bridge()
 		else:
@@ -108,8 +108,8 @@ func _repair_bridge() -> void:
 	Global.bridge_repaired = true
 	repaired = true
 	_apply_state()
-	SaveGame.save_game("断桥")
+	SaveGame.save_game("前哨木桥")
 	Sfx.play("craft")
 	if hud != null:
 		hud.call("hide_hint")
-		hud.call("show_notice", "桥梁已修复")
+		hud.call("show_notice", "前哨木桥已修复")

@@ -7,7 +7,6 @@ const TOWN_SCENE := "res://scenes/prologue/white_deer_town.tscn"
 
 var gate_position := Vector2(735, 180)
 var return_position := Vector2(55, 180)
-var arena_rect := Rect2(410, 65, 320, 225)
 var generation := 0
 var current_wave := ""
 var wave_remaining := 0
@@ -20,7 +19,7 @@ func on_scene_ready() -> void:
 	resolve_spawn(Vector2(105, 180))
 	player.set_spawn_position(Vector2(105, 180))
 	hud.dialog_finished.connect(_on_dialog_finished)
-	if Global.riftwing_defeated:
+	if Global.east_gate_cleared:
 		open_gate()
 		set_objective("前往白鹿镇")
 		set_tutorial("沿东侧道路离开灰杉村")
@@ -28,8 +27,6 @@ func on_scene_ready() -> void:
 		resume_assault()
 	else:
 		refresh_ready_objective()
-		if can_start_assault():
-			start_assault()
 
 
 func _draw() -> void:
@@ -113,15 +110,15 @@ func resume_assault() -> void:
 	elif not Global.wave2_cleared:
 		spawn_wave_two(active_generation)
 	else:
-		spawn_boss(active_generation)
+		_finish_assault()
 
 
 func spawn_wave_one(active_generation: int) -> void:
 	current_wave = "wave1"
 	wave_remaining = 3
-	spawn_enemy("melee", Vector2(520, 115), active_generation)
-	spawn_enemy("melee", Vector2(585, 247), active_generation)
-	spawn_enemy("ranged", Vector2(625, 145), active_generation)
+	spawn_enemy("melee", Vector2(470, 115), active_generation)
+	spawn_enemy("melee", Vector2(535, 247), active_generation)
+	spawn_enemy("ranged", Vector2(575, 145), active_generation)
 	set_objective("击退第一波翼蜥")
 	set_tutorial("观察红橙色预警，使用职业技能躲避")
 
@@ -129,34 +126,16 @@ func spawn_wave_one(active_generation: int) -> void:
 func spawn_wave_two(active_generation: int) -> void:
 	current_wave = "wave2"
 	wave_remaining = 3
-	spawn_enemy("melee", Vector2(505, 95), active_generation)
-	spawn_enemy("melee", Vector2(640, 260), active_generation)
-	spawn_enemy("elite", Vector2(655, 155), active_generation)
+	spawn_enemy("melee", Vector2(455, 95), active_generation)
+	spawn_enemy("melee", Vector2(590, 260), active_generation)
+	spawn_enemy("elite", Vector2(605, 155), active_generation)
 	set_objective("击退第二波翼蜥与精英")
 	set_tutorial("精英翼蜥攻击前摇更长，注意闪避")
-
-
-func spawn_boss(active_generation: int) -> void:
-	current_wave = "boss"
-	var boss := ENEMY_SCENE.instantiate() as Node2D
-	boss.call("configure", "boss")
-	boss.set("arena_rect", arena_rect)
-	boss.position = Vector2(650, 180)
-	boss.add_to_group("PrologueCombatant")
-	boss.connect("boss_health_changed", _on_boss_health_changed)
-	boss.connect("died", _on_boss_died.bind(active_generation))
-	objects.add_child(boss)
-	hud.call("show_boss", "裂翼兽", int(boss.get("max_health")))
-	hud.call("show_banner", "裂翼兽", "受赤冠之龙气息影响的幼年龙兽", 1.8)
-	Sfx.play("danger", 0.55, 0.0)
-	set_objective("击败裂翼兽")
-	set_tutorial("冲撞、龙息弹与振翼都有明确预警")
 
 
 func spawn_enemy(kind: String, pos: Vector2, active_generation: int) -> void:
 	var enemy := ENEMY_SCENE.instantiate() as Node2D
 	enemy.call("configure", kind)
-	enemy.set("arena_rect", arena_rect)
 	enemy.position = pos
 	enemy.add_to_group("PrologueCombatant")
 	enemy.connect("died", _on_wave_enemy_died.bind(active_generation))
@@ -171,33 +150,32 @@ func _on_wave_enemy_died(active_generation: int) -> void:
 		return
 	if current_wave == "wave1":
 		Global.wave1_cleared = true
+		if not bool(player.get("dead")):
+			player.call("heal_by", int(float(player.get("max_health")) * 0.25))
+			SaveGame.save_game("灰杉村东门")
+			hud.call("show_notice", "第一波已击退，进度已保存", 2.2)
 		current_wave = "transition"
 		await get_tree().create_timer(0.9).timeout
-		if active_generation == generation and not Global.riftwing_defeated:
+		if active_generation == generation and not Global.east_gate_cleared:
 			spawn_wave_two(active_generation)
 	elif current_wave == "wave2":
 		Global.wave2_cleared = true
 		current_wave = "transition"
 		await get_tree().create_timer(1.1).timeout
-		if active_generation == generation and not Global.riftwing_defeated:
-			spawn_boss(active_generation)
+		if active_generation == generation:
+			_finish_assault()
 
 
-func _on_boss_health_changed(current: int, maximum: int) -> void:
-	hud.call("update_boss", current, maximum)
-
-
-func _on_boss_died(active_generation: int) -> void:
-	if active_generation != generation:
+func _finish_assault() -> void:
+	if transitioning or Global.east_gate_cleared:
 		return
-	Global.riftwing_defeated = true
+	Global.east_gate_cleared = true
 	player.call("set_input_locked", true)
 	if int(Global.inventory.get("silver_oath_sigil", 0)) <= 0:
 		Global.add_item("silver_oath_sigil", 1)
 	if int(Global.inventory.get("white_deer_letter", 0)) <= 0:
 		Global.add_item("white_deer_letter", 1)
-	Global.add_item("potion", 1)
-	hud.call("hide_boss")
+	Global.add_item("herb", 1)
 	hud.call("show_banner", "赤冠的爪牙倒下了", "远方传来自龙骨山的龙吼", 2.3)
 	Sfx.play("danger", 0.42, 0.0)
 	open_gate()
@@ -208,7 +186,7 @@ func _on_boss_died(active_generation: int) -> void:
 	if transitioning:
 		return
 	dialog_context = "victory"
-	hud.call("show_dialog", "加雷斯爵士", "那不是普通野兽。它只是赤冠之龙的眼睛和爪牙。去白鹿镇找冒险者公会。告诉他们，银誓的封印已经破了。")
+	hud.call("show_dialog", "加雷斯爵士", "这些翼蜥不是普通野兽。它们只是赤冠之龙的眼睛和爪牙。去白鹿镇找冒险者公会。告诉他们，银誓的封印已经破了。")
 
 
 func open_gate() -> void:
@@ -225,10 +203,14 @@ func _on_dialog_finished() -> void:
 
 
 func on_scene_process(_delta: float) -> void:
-	if Global.riftwing_defeated and player.global_position.x >= 755.0:
+	if Global.east_gate_cleared and player.global_position.x >= 755.0:
 		travel_to(TOWN_SCENE)
 		return
-	if not Global.village_attack_started and player.global_position.distance_to(return_position) <= 42.0:
+	if can_start_assault() and not Global.village_attack_started and player.global_position.x >= 340.0:
+		start_assault()
+		return
+	var can_return := not Global.village_attack_started or Global.east_gate_cleared
+	if can_return and player.global_position.distance_to(return_position) <= 42.0:
 		hud.call("show_interaction", "[%s] 返回灰杉村" % Settings.binding_text("interact"))
 		if Input.is_action_just_pressed("interact"):
 			travel_to(VILLAGE_SCENE, "east_gate")
@@ -245,16 +227,15 @@ func _clear_combatants() -> void:
 func on_after_revive() -> void:
 	generation += 1
 	_clear_combatants()
-	hud.call("hide_boss")
 	player.global_position = Vector2(105, 180)
-	if Global.village_attack_started and not Global.riftwing_defeated:
+	if Global.village_attack_started and not Global.east_gate_cleared:
 		var active_generation := generation
 		if not Global.wave1_cleared:
 			spawn_wave_one(active_generation)
 		elif not Global.wave2_cleared:
 			spawn_wave_two(active_generation)
 		else:
-			spawn_boss(active_generation)
+			_finish_assault()
 	else:
 		refresh_ready_objective()
 

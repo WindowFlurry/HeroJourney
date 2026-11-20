@@ -4,6 +4,7 @@
 [ext_resource type="Texture2D" path="res://graphics/objects/mutant_vine.png" id="2_vine"]
 [ext_resource type="Texture2D" path="res://graphics/objects/plank_debris.png" id="3_plank"]
 [ext_resource type="Texture2D" path="res://graphics/objects/rust_metal.png" id="4_metal"]
+[ext_resource type="PackedScene" path="res://scenes/level/oath_stele.tscn" id="5_stele"]
 
 [node name="BossIsland" type="Node2D"]
 
@@ -109,3 +110,6 @@ flip_h = true
 position = Vector2(546, 1472)
 texture = ExtResource("4_metal")
 flip_h = true
+
+[node name="OathStele" parent="." instance=ExtResource("5_stele")]
+position = Vector2(420, 1370)
