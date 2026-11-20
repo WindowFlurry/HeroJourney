@@ -1,0 +1,20 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scenes/prologue/white_deer_town.gd" id="1_town"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2_player"]
+[ext_resource type="Script" path="res://scenes/prologue/prologue_hud.gd" id="3_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/pause_menu.tscn" id="4_pause"]
+
+[node name="WhiteDeerTown" type="Node2D"]
+script = ExtResource("1_town")
+
+[node name="Objects" type="Node2D" parent="."]
+
+[node name="Player" parent="Objects" instance=ExtResource("2_player")]
+position = Vector2(62, 154)
+z_index = 5
+
+[node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("3_hud")
+
+[node name="PauseMenu" parent="." instance=ExtResource("4_pause")]

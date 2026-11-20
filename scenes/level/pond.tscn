@@ -1,0 +1,22 @@
+[gd_scene format=4]
+
+[ext_resource type="Texture2D" path="res://graphics/tilesets/water.png" id="1_water"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_pond"]
+texture = ExtResource("1_water")
+0:0/animation_columns = 4
+0:0/animation_frame_0/duration = 0.3
+0:0/animation_frame_1/duration = 0.3
+0:0/animation_frame_2/duration = 0.3
+0:0/animation_frame_3/duration = 1.0
+0:0/0 = 0
+0:0/0/physics_layer_0/polygon_0/points = PackedVector2Array(-8, -8, 8, -8, 8, 8, -8, 8)
+
+[sub_resource type="TileSet" id="TileSet_pond"]
+physics_layer_0/collision_layer = 1
+physics_layer_0/collision_mask = 0
+sources/0 = SubResource("TileSetAtlasSource_pond")
+
+[node name="Pond" type="TileMapLayer"]
+tile_map_data = PackedByteArray("AAD2/xUAAAAAAAAAAAD2/xYAAAAAAAAAAAD3/xQAAAAAAAAAAAD3/xUAAAAAAAAAAAD3/xYAAAAAAAAAAAD3/xcAAAAAAAAAAAD4/xQAAAAAAAAAAAD4/xUAAAAAAAAAAAD4/xYAAAAAAAAAAAD4/xcAAAAAAAAAAAD5/xQAAAAAAAAAAAD5/xUAAAAAAAAAAAD5/xYAAAAAAAAAAAD5/xcAAAAAAAAAAAD6/xQAAAAAAAAAAAD6/xUAAAAAAAAAAAD6/xYAAAAAAAAAAAD6/xcAAAAAAAAAAAD7/xQAAAAAAAAAAAD7/xUAAAAAAAAAAAD7/xYAAAAAAAAAAAD7/xcAAAAAAAAAAAD8/xUAAAAAAAAAAAD8/xYAAAAAAAAAAAA=")
+tile_set = SubResource("TileSet_pond")

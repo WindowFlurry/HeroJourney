@@ -1,0 +1,45 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Texture2D" path="res://graphics/enemies/crow.png" id="1_crow"]
+[ext_resource type="Script" path="res://scenes/level/crow.gd" id="2_script"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_perch"]
+atlas = ExtResource("1_crow")
+region = Rect2(0, 0, 20, 20)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fly_up"]
+atlas = ExtResource("1_crow")
+region = Rect2(20, 0, 20, 20)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fly_down"]
+atlas = ExtResource("1_crow")
+region = Rect2(40, 0, 20, 20)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_crow"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_perch")
+}],
+"loop": true,
+"name": &"perch",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fly_up")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fly_down")
+}],
+"loop": true,
+"name": &"fly",
+"speed": 9.0
+}]
+
+[node name="Crow" type="Node2D"]
+script = ExtResource("2_script")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("SpriteFrames_crow")
+animation = &"perch"

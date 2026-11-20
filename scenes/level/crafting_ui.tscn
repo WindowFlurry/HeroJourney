@@ -1,0 +1,124 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Texture2D" path="res://graphics/camp/campfire.png" id="1_fire"]
+[ext_resource type="Texture2D" path="res://graphics/ui/diary_page.png" id="2_page"]
+[ext_resource type="Script" path="res://scenes/level/crafting_ui.gd" id="3_script"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fire"]
+atlas = ExtResource("1_fire")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="SystemFont" id="SystemFont_ui"]
+font_names = PackedStringArray("Microsoft YaHei", "KaiTi")
+
+[sub_resource type="SystemFont" id="SystemFont_tab"]
+font_names = PackedStringArray("Microsoft YaHei", "KaiTi")
+
+[node name="CraftingUI" type="Control"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("3_script")
+
+[node name="Dim" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.72)
+
+[node name="Campfire" type="TextureRect" parent="."]
+offset_left = 148.0
+offset_top = 92.0
+offset_right = 212.0
+offset_bottom = 156.0
+texture = SubResource("AtlasTexture_fire")
+expand_mode = 1
+stretch_mode = 0
+
+[node name="CampfireLabel" type="Label" parent="."]
+offset_left = 140.0
+offset_top = 158.0
+offset_right = 220.0
+offset_bottom = 174.0
+theme_override_colors/font_color = Color(1, 0.92, 0.75, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_fonts/font = SubResource("SystemFont_ui")
+theme_override_font_sizes/font_size = 9
+text = "篝火"
+horizontal_alignment = 1
+
+[node name="Book" type="TextureRect" parent="."]
+offset_left = 248.0
+offset_top = 14.0
+offset_right = 472.0
+offset_bottom = 260.0
+texture = ExtResource("2_page")
+expand_mode = 1
+stretch_mode = 0
+
+[node name="TabItems" type="Button" parent="."]
+offset_left = 254.0
+offset_top = 0.0
+offset_right = 338.0
+offset_bottom = 18.0
+theme_override_fonts/font = SubResource("SystemFont_tab")
+theme_override_font_sizes/font_size = 8
+text = "道具"
+
+[node name="TabGear" type="Button" parent="."]
+offset_left = 342.0
+offset_top = 0.0
+offset_right = 458.0
+offset_bottom = 18.0
+theme_override_fonts/font = SubResource("SystemFont_tab")
+theme_override_font_sizes/font_size = 8
+text = "武器 / 防具"
+
+[node name="PageTitle" type="Label" parent="."]
+offset_left = 264.0
+offset_top = 30.0
+offset_right = 356.0
+offset_bottom = 42.0
+theme_override_colors/font_color = Color(0.25, 0.12, 0.08, 1)
+theme_override_fonts/font = SubResource("SystemFont_ui")
+theme_override_font_sizes/font_size = 10
+text = "道具配方"
+
+[node name="Stats" type="Label" parent="."]
+offset_left = 264.0
+offset_top = 42.0
+offset_right = 456.0
+offset_bottom = 54.0
+theme_override_colors/font_color = Color(0.35, 0.2, 0.12, 1)
+theme_override_fonts/font = SubResource("SystemFont_ui")
+theme_override_font_sizes/font_size = 8
+text = "攻击力 5 / 8     防御力 1 / 2"
+
+[node name="Scroll" type="ScrollContainer" parent="."]
+offset_left = 264.0
+offset_top = 58.0
+offset_right = 456.0
+offset_bottom = 232.0
+horizontal_scroll_mode = 0
+
+[node name="Recipes" type="VBoxContainer" parent="Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="CloseHint" type="Label" parent="."]
+offset_left = 366.0
+offset_top = 238.0
+offset_right = 460.0
+offset_bottom = 254.0
+theme_override_colors/font_color = Color(0.35, 0.2, 0.12, 1)
+theme_override_fonts/font = SubResource("SystemFont_ui")
+theme_override_font_sizes/font_size = 7
+text = "按 ESC 关闭"
+horizontal_alignment = 2

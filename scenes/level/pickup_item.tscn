@@ -1,0 +1,31 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Texture2D" path="res://graphics/fx/glow_white.png" id="1_glow"]
+[ext_resource type="Script" path="res://scenes/level/pickup_item.gd" id="2_script"]
+
+[sub_resource type="SystemFont" id="SystemFont_hint"]
+font_names = PackedStringArray("Microsoft YaHei", "KaiTi")
+
+[node name="PickupItem" type="Node2D"]
+script = ExtResource("2_script")
+
+[node name="Glow" type="Sprite2D" parent="."]
+texture = ExtResource("1_glow")
+scale = Vector2(0.65, 0.65)
+
+[node name="Icon" type="Sprite2D" parent="."]
+visible = false
+
+[node name="Hint" type="Label" parent="."]
+visible = false
+offset_left = -28.0
+offset_top = -28.0
+offset_right = 28.0
+offset_bottom = -15.0
+theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_fonts/font = SubResource("SystemFont_hint")
+theme_override_font_sizes/font_size = 7
+text = "按F拾取"
+horizontal_alignment = 1

@@ -1,0 +1,111 @@
+[gd_scene format=4]
+
+[ext_resource type="PackedScene" path="res://scenes/level/boss_ground.tscn" id="1_ground"]
+[ext_resource type="Texture2D" path="res://graphics/objects/mutant_vine.png" id="2_vine"]
+[ext_resource type="Texture2D" path="res://graphics/objects/plank_debris.png" id="3_plank"]
+[ext_resource type="Texture2D" path="res://graphics/objects/rust_metal.png" id="4_metal"]
+
+[node name="BossIsland" type="Node2D"]
+
+[node name="Ground" parent="." instance=ExtResource("1_ground")]
+
+[node name="Vine1" type="Sprite2D" parent="."]
+position = Vector2(322, 1342)
+texture = ExtResource("2_vine")
+
+[node name="Vine2" type="Sprite2D" parent="."]
+position = Vector2(366, 1424)
+texture = ExtResource("2_vine")
+flip_h = true
+scale = Vector2(0.9, 0.9)
+
+[node name="Vine3" type="Sprite2D" parent="."]
+position = Vector2(444, 1322)
+texture = ExtResource("2_vine")
+scale = Vector2(1.1, 1.1)
+
+[node name="Vine4" type="Sprite2D" parent="."]
+position = Vector2(524, 1362)
+texture = ExtResource("2_vine")
+flip_h = true
+
+[node name="Vine5" type="Sprite2D" parent="."]
+position = Vector2(584, 1432)
+texture = ExtResource("2_vine")
+scale = Vector2(1.2, 1.2)
+
+[node name="Vine6" type="Sprite2D" parent="."]
+position = Vector2(498, 1482)
+texture = ExtResource("2_vine")
+flip_h = true
+scale = Vector2(0.85, 0.85)
+
+[node name="Vine7" type="Sprite2D" parent="."]
+position = Vector2(302, 1452)
+texture = ExtResource("2_vine")
+scale = Vector2(0.95, 0.95)
+
+[node name="Vine8" type="Sprite2D" parent="."]
+position = Vector2(390, 1462)
+texture = ExtResource("2_vine")
+flip_h = true
+
+[node name="Vine9" type="Sprite2D" parent="."]
+position = Vector2(614, 1392)
+texture = ExtResource("2_vine")
+scale = Vector2(0.9, 0.9)
+
+[node name="Vine10" type="Sprite2D" parent="."]
+position = Vector2(342, 1302)
+texture = ExtResource("2_vine")
+flip_h = true
+
+[node name="Plank1" type="Sprite2D" parent="."]
+position = Vector2(432, 1336)
+texture = ExtResource("3_plank")
+
+[node name="Plank2" type="Sprite2D" parent="."]
+position = Vector2(502, 1412)
+texture = ExtResource("3_plank")
+flip_h = true
+
+[node name="Plank3" type="Sprite2D" parent="."]
+position = Vector2(332, 1460)
+texture = ExtResource("3_plank")
+flip_h = true
+
+[node name="Plank4" type="Sprite2D" parent="."]
+position = Vector2(556, 1312)
+texture = ExtResource("3_plank")
+
+[node name="Plank5" type="Sprite2D" parent="."]
+position = Vector2(410, 1432)
+texture = ExtResource("3_plank")
+flip_h = true
+
+[node name="Plank6" type="Sprite2D" parent="."]
+position = Vector2(472, 1462)
+texture = ExtResource("3_plank")
+
+[node name="Metal1" type="Sprite2D" parent="."]
+position = Vector2(370, 1362)
+texture = ExtResource("4_metal")
+
+[node name="Metal2" type="Sprite2D" parent="."]
+position = Vector2(472, 1384)
+texture = ExtResource("4_metal")
+flip_h = true
+
+[node name="Metal3" type="Sprite2D" parent="."]
+position = Vector2(602, 1342)
+texture = ExtResource("4_metal")
+
+[node name="Metal4" type="Sprite2D" parent="."]
+position = Vector2(302, 1402)
+texture = ExtResource("4_metal")
+flip_h = true
+
+[node name="Metal5" type="Sprite2D" parent="."]
+position = Vector2(546, 1472)
+texture = ExtResource("4_metal")
+flip_h = true

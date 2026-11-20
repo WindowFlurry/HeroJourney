@@ -1,0 +1,42 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Texture2D" path="res://graphics/camp/gate_closed.png" id="1_closed"]
+[ext_resource type="Texture2D" path="res://graphics/camp/gate_open.png" id="2_open"]
+[ext_resource type="Texture2D" path="res://graphics/camp/gate_lever.png" id="3_lever"]
+[ext_resource type="Script" path="res://scenes/level/gate.gd" id="4_script"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_gate"]
+size = Vector2(48, 8)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_trigger"]
+radius = 48.0
+
+[node name="CampGate" type="Node2D"]
+position = Vector2(88, 40)
+script = ExtResource("4_script")
+
+[node name="Closed" type="Sprite2D" parent="."]
+texture = ExtResource("1_closed")
+
+[node name="Open" type="Sprite2D" parent="."]
+visible = false
+texture = ExtResource("2_open")
+
+[node name="Lever" type="Sprite2D" parent="."]
+position = Vector2(34, 0)
+texture = ExtResource("3_lever")
+
+[node name="Blocker" type="StaticBody2D" parent="."]
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Blocker"]
+position = Vector2(0, 4)
+shape = SubResource("RectangleShape2D_gate")
+
+[node name="Trigger" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Trigger"]
+shape = SubResource("CircleShape2D_trigger")

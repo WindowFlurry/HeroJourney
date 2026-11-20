@@ -1,0 +1,7 @@
+[gd_scene format=4]
+
+[ext_resource type="TileSet" path="res://scenes/level/hills_tileset.tres" id="1_rock"]
+
+[node name="RockOutcrops" type="TileMapLayer"]
+tile_map_data = PackedByteArray("AAAEACwAAAADAAAAAAAEAC0AAAADAAEAAAAFACwAAAAEAAAAAAAFAC0AAAAEAAEAAAA=")
+tile_set = ExtResource("1_rock")

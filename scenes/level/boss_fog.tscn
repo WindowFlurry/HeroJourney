@@ -1,0 +1,70 @@
+[gd_scene format=4]
+
+[ext_resource type="Texture2D" path="res://graphics/fx/fog_particle.png" id="2_wisp"]
+[ext_resource type="Texture2D" path="res://graphics/fx/fog_particle_light.png" id="4_wisp_light"]
+[ext_resource type="Script" path="res://scenes/level/boss_fog.gd" id="3_script"]
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_mist"]
+emission_shape = 3
+emission_box_extents = Vector2(230, 105)
+direction = Vector2(0, -1)
+spread = 180.0
+initial_velocity_min = 1.0
+initial_velocity_max = 4.0
+gravity = Vector2(0, 0)
+scale_min = 0.5
+scale_max = 1.1
+angle_min = -180.0
+angle_max = 180.0
+color = Color(1, 1, 1, 0.55)
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_wisp"]
+emission_shape = 3
+emission_box_extents = Vector2(190, 95)
+direction = Vector2(0, -1)
+spread = 60.0
+initial_velocity_min = 5.0
+initial_velocity_max = 12.0
+gravity = Vector2(0, 0)
+scale_min = 0.35
+scale_max = 0.75
+angle_min = -180.0
+angle_max = 180.0
+color = Color(1, 1, 1, 0.6)
+
+[node name="BossFog" type="Node2D"]
+position = Vector2(440, 1368)
+script = ExtResource("3_script")
+
+[node name="BlackFog" type="Sprite2D" parent="."]
+modulate = Color(0.52, 0.82, 0.68, 0.8)
+texture = ExtResource("4_wisp_light")
+scale = Vector2(2.4, 2.1)
+
+[node name="BlackFog2" type="Sprite2D" parent="."]
+position = Vector2(48, 24)
+modulate = Color(0.42, 0.72, 0.6, 0.78)
+texture = ExtResource("4_wisp_light")
+scale = Vector2(2.5, 2.1)
+
+[node name="BlackFog3" type="Sprite2D" parent="."]
+position = Vector2(-60, -10)
+modulate = Color(0.6, 0.88, 0.72, 0.75)
+texture = ExtResource("4_wisp_light")
+scale = Vector2(2.0, 1.7)
+
+[node name="Mist" type="GPUParticles2D" parent="."]
+amount = 220
+lifetime = 5.0
+preprocess = 3.0
+visibility_rect = Rect2(-280, -200, 560, 400)
+texture = ExtResource("2_wisp")
+process_material = SubResource("ParticleProcessMaterial_mist")
+
+[node name="Wisps" type="GPUParticles2D" parent="."]
+amount = 90
+lifetime = 4.0
+preprocess = 2.0
+visibility_rect = Rect2(-280, -200, 560, 400)
+texture = ExtResource("4_wisp_light")
+process_material = SubResource("ParticleProcessMaterial_wisp")

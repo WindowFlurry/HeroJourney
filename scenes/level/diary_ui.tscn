@@ -1,0 +1,78 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Texture2D" path="res://graphics/ui/diary_page.png" id="1_page"]
+[ext_resource type="Script" path="res://scenes/level/diary_ui.gd" id="2_script"]
+
+[sub_resource type="SystemFont" id="SystemFont_kaiti"]
+font_names = PackedStringArray("KaiTi", "STKaiti", "Microsoft YaHei")
+
+[node name="DiaryUI" type="Control"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_script")
+
+[node name="Dim" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.68)
+
+[node name="Book" type="TextureRect" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -120.0
+offset_right = 200.0
+offset_bottom = 120.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("1_page")
+
+[node name="Text" type="Label" parent="Book"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 36.0
+offset_top = 32.0
+offset_right = -36.0
+offset_bottom = -42.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.18, 0.1, 0.06, 1)
+theme_override_constants/line_spacing = 4
+theme_override_fonts/font = SubResource("SystemFont_kaiti")
+theme_override_font_sizes/font_size = 11
+text = "（探险队队长记录）
+我们奉命前来探索这座岛屿。
+上岛之后没过多久我们就发现，岛上的野兽变得狂躁、扭曲。
+空气中漂浮着淡淡的黑雾，似乎就是异变的源头。
+我们在此搭建前哨营地，准备深入调查。
+下面是营地的备用钥匙，不到万不得已全队不得使用，由队长保存。"
+autowrap_mode = 3
+
+[node name="CloseHint" type="Label" parent="Book"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -120.0
+offset_top = -30.0
+offset_right = -30.0
+offset_bottom = -12.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.35, 0.2, 0.12, 1)
+theme_override_fonts/font = SubResource("SystemFont_kaiti")
+theme_override_font_sizes/font_size = 8
+text = "按 ESC 关闭"
+horizontal_alignment = 2

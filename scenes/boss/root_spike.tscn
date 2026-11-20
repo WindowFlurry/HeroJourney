@@ -1,0 +1,11 @@
+[gd_scene format=4]
+
+[ext_resource type="Texture2D" path="res://graphics/boss/root_spike.png" id="1_spike"]
+[ext_resource type="Script" path="res://scenes/boss/root_spike.gd" id="2_script"]
+
+[node name="RootSpike" type="Node2D"]
+script = ExtResource("2_script")
+
+[node name="Sprite" type="Sprite2D" parent="."]
+offset = Vector2(0, -24)
+texture = ExtResource("1_spike")

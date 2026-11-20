@@ -1,0 +1,38 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Texture2D" path="res://graphics/camp/camp_log.png" id="1_sprite"]
+[ext_resource type="Script" path="res://scenes/level/readable_item.gd" id="2_script"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_log"]
+size = Vector2(24, 8)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_log"]
+radius = 26.0
+
+[node name="CampLog" type="StaticBody2D"]
+script = ExtResource("2_script")
+item_title = "营地主日志"
+item_text = "我们抵达了岛屿南岸。
+整片大陆的黑雾污染，全部源自海对岸的孤岛。
+那座岛上栖息着畸变的源头巨兽，一切异变都是它带来的。
+我们搭建跨海桥梁，准备彻底终结污染。
+但在桥梁即将完工时，对岸的怪物发动了袭击。
+桥梁断裂，队伍溃散，所有人失联。
+若未来有人抵达此处：收集散落的桥梁构件，重铸大桥，终结这场灾难。"
+prompt = "按 F 阅读营地主日志"
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(0, -16)
+texture = ExtResource("1_sprite")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -4)
+shape = SubResource("RectangleShape2D_log")
+
+[node name="InteractArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="InteractArea"]
+position = Vector2(0, -16)
+shape = SubResource("CircleShape2D_log")

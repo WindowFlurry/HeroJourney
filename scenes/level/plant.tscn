@@ -1,0 +1,25 @@
+[gd_scene format=3 uid="uid://c1a7ibp70d88y"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_x6yfg"]
+size = Vector2(8, 11)
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_x6yfg"]
+radius = 6.0
+
+[node name="Plant" type="StaticBody2D" unique_id=1072009744 groups=["Plants"]]
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1343489697]
+hframes = 4
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1545069457]
+position = Vector2(0, 4.5)
+shape = SubResource("RectangleShape2D_x6yfg")
+
+[node name="Area2D" type="Area2D" parent="." unique_id=1523785242]
+collision_layer = 4
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=1062707653]
+shape = SubResource("CapsuleShape2D_x6yfg")
+
+[connection signal="body_entered" from="Area2D" to="." method="_on_area_2d_body_entered"]
