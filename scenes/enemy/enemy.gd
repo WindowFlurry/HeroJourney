@@ -280,13 +280,27 @@ func _process_ranged(delta: float) -> void:
 		return
 
 	if not player_safe and _has_aggro():
-		velocity = Vector2.ZERO
+		var has_los := _has_line_of_sight_to_player()
 		facing = _cardinal(to_player)
-		if distance <= attack_range and attack_cooldown <= 0.0:
-			_start_windup("ranged")
+		if has_los and distance <= attack_range:
+			velocity = Vector2.ZERO
+			if attack_cooldown <= 0.0:
+				_start_windup("ranged")
+			return
+		var dir := to_player.normalized()
+		velocity = dir * move_speed
 		return
 
 	_wander(delta)
+
+
+func _has_line_of_sight_to_player() -> bool:
+	if player == null:
+		return false
+	var query := PhysicsRayQueryParameters2D.create(global_position, player.global_position, 1)
+	query.collide_with_areas = false
+	var hit := get_world_2d().direct_space_state.intersect_ray(query)
+	return hit.is_empty()
 
 
 func _wander(delta: float) -> void:
@@ -430,6 +444,31 @@ func apply_stagger(duration: float) -> void:
 	sprite.modulate = Color(0.7, 0.8, 1.0)
 	var t := create_tween()
 	t.tween_property(sprite, "modulate", base_tint, 0.25)
+
+
+func get_hit_boxes() -> Array:
+	var frame := Vector2(48, 48)
+	var sx := sprite.scale.x
+	var size := frame * sx
+	return [
+		{
+			"rect": Rect2(global_position - size * 0.5, size),
+			"multiplier": 1.0,
+			"region": "body",
+		},
+	]
+
+
+func get_hit_info(attacker_pos: Vector2, dir: Vector2, reach: float) -> Dictionary:
+	return CombatHit.melee(get_hit_boxes(), attacker_pos, dir, reach)
+
+
+func hit_test_projectile(point: Vector2, radius: float) -> Dictionary:
+	return CombatHit.point(get_hit_boxes(), point, radius)
+
+
+func is_hit_by_attack(attacker_pos: Vector2, dir: Vector2, reach: float) -> bool:
+	return bool(get_hit_info(attacker_pos, dir, reach).get("hit", false))
 
 
 func take_damage(amount: int) -> void:

@@ -2,6 +2,14 @@ extends Node2D
 
 const GLOW: Texture2D = preload("res://graphics/fx/glow_white.png")
 
+@export var reveal_flag := "boss_defeated"
+@export var lit_flag := "first_stele_lit"
+@export var reveal_notice := "裂牙格鲁姆倒下了，誓火石碑显现"
+@export var lit_notice := "誓火石碑已点燃，白桦林地得到净化；石碑旁出现了通往失誓修道院的门"
+@export var victory_title := "第一关完成"
+@export var victory_location := "白桦林地"
+@export var reveal_delay := 5.0
+
 var player: Node2D
 var hud
 var label: Label
@@ -17,7 +25,7 @@ func _ready() -> void:
 	hud = get_tree().get_first_node_in_group("HUD")
 	_build_visual()
 	visible = false
-	allow_interact = Global.boss_defeated
+	allow_interact = bool(Global.get(reveal_flag))
 
 
 func _build_visual() -> void:
@@ -47,7 +55,7 @@ func _build_visual() -> void:
 
 
 func _process(_delta: float) -> void:
-	if not Global.boss_defeated:
+	if not bool(Global.get(reveal_flag)):
 		visible = false
 		return
 	if not visible:
@@ -55,14 +63,14 @@ func _process(_delta: float) -> void:
 		if not announced:
 			announced = true
 			if hud != null:
-				hud.call("show_notice", "裂牙格鲁姆倒下了，誓火石碑显现")
+				hud.call("show_notice", reveal_notice)
 			if not allow_interact:
-				var delay := get_tree().create_timer(5.0)
+				var delay := get_tree().create_timer(reveal_delay)
 				delay.timeout.connect(func() -> void:
 					if is_inside_tree():
 						allow_interact = true
 				)
-	if Global.first_stele_lit:
+	if bool(Global.get(lit_flag)):
 		_set_lit_visual()
 		return
 	if not allow_interact:
@@ -82,21 +90,21 @@ func _process(_delta: float) -> void:
 
 
 func _light() -> void:
-	if Global.first_stele_lit:
+	if bool(Global.get(lit_flag)):
 		return
-	Global.first_stele_lit = true
-	SaveGame.save_game("白桦林地")
+	Global.set(lit_flag, true)
+	SaveGame.save_game(victory_location)
 	_set_lit_visual()
 	if hud != null:
 		hud.call("hide_hint")
-		hud.call("show_notice", "誓火石碑已点燃，白桦林地得到净化")
+		hud.call("show_notice", lit_notice)
 	Sfx.play("craft", 1.0, 2.0)
 	await get_tree().create_timer(1.2).timeout
 	if not is_inside_tree():
 		return
 	var victory = get_tree().get_first_node_in_group("VictoryScreen")
 	if victory != null:
-		victory.call("show_victory")
+		victory.call("show_victory", victory_title, victory_location)
 
 
 func _set_lit_visual() -> void:
@@ -115,7 +123,7 @@ func _draw() -> void:
 	draw_rect(Rect2(-18, -46, 36, 44), Color(0.42, 0.36, 0.3))
 	draw_rect(Rect2(-22, -8, 44, 8), Color(0.27, 0.23, 0.2))
 	draw_rect(Rect2(-10, -38, 20, 4), Color(0.26, 0.22, 0.18))
-	var lit := Global.first_stele_lit
+	var lit := bool(Global.get(lit_flag))
 	var rune := Color(1.0, 0.55, 0.2) if lit else Color(0.2, 0.17, 0.15)
 	draw_circle(Vector2(0, -28), 7.0, rune)
 	draw_line(Vector2(-9, -28), Vector2(9, -28), rune, 2.0)

@@ -4,6 +4,8 @@ var _root: Control
 var _panel: Panel
 var _buttons: Array[Button] = []
 var _font: SystemFont
+var _title_label: Label
+var _save_location := "白桦林地"
 
 
 func _ready() -> void:
@@ -93,12 +95,12 @@ func _build() -> void:
 	inner.add_theme_stylebox_override("panel", _style(Color(0, 0, 0, 0), Color(0.35, 0.29, 0.18, 0.4)))
 	_panel.add_child(inner)
 
-	var title := _label("第一关完成", 16, Color(1.0, 0.86, 0.5))
-	title.position = Vector2(0, 28)
-	title.size = Vector2(200, 24)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_constant_override("outline_size", 3)
-	_panel.add_child(title)
+	_title_label = _label("第一关完成", 16, Color(1.0, 0.86, 0.5))
+	_title_label.position = Vector2(0, 28)
+	_title_label.size = Vector2(200, 24)
+	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_title_label.add_theme_constant_override("outline_size", 3)
+	_panel.add_child(_title_label)
 
 	var line_color := Color(0.59, 0.47, 0.27, 0.85)
 	var line_l := ColorRect.new()
@@ -149,9 +151,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		_continue_exploring()
 
 
-func show_victory() -> void:
+func show_victory(title: String = "第一关完成", location: String = "白桦林地") -> void:
 	if _root == null or _root.visible:
 		return
+	if _title_label != null:
+		_title_label.text = title
+	_save_location = location
 	_root.visible = true
 	_root.modulate.a = 0.0
 	get_tree().paused = true
@@ -170,7 +175,7 @@ func _continue_exploring() -> void:
 
 
 func _back_to_menu() -> void:
-	SaveGame.save_game("白桦林地")
+	SaveGame.save_game(_save_location)
 	_root.visible = false
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://scenes/ui/main_menu.tscn")

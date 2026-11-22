@@ -83,6 +83,7 @@ const WEAPON_SLOTS := [
 
 var _objective_timer := 0.0
 var _current_objective := ""
+var test_menu_open := false
 
 
 func _ready() -> void:
@@ -581,6 +582,8 @@ func _build_character_ui() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if test_menu_open:
+		return
 	if event.is_action_pressed("character_menu"):
 		if character_open:
 			_close_character()

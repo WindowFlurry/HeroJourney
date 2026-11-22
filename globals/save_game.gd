@@ -69,6 +69,11 @@ func save_game(location: String) -> void:
 			"east_gate_cleared": Global.east_gate_cleared,
 			"guild_registered": Global.guild_registered,
 			"first_stele_lit": Global.first_stele_lit,
+			"roland_defeated": Global.roland_defeated,
+			"second_stele_lit": Global.second_stele_lit,
+			"monastery_chest_opened": Global.monastery_chest_opened,
+			"monastery_chapel_open": Global.monastery_chapel_open,
+			"monastery_right_seal": Global.monastery_right_seal,
 		},
 	}
 	var file := FileAccess.open(PATH, FileAccess.WRITE)

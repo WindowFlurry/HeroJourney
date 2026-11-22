@@ -586,17 +586,23 @@ func _hit_enemies(reach: float, damage: int, dir: Vector2, stagger: float = 0.0)
 		if enemy_node == null or enemy_node.is_queued_for_deletion():
 			continue
 		var hit := false
-		if enemy_node.has_method("is_hit_by_attack"):
+		var multiplier := 1.0
+		if enemy_node.has_method("get_hit_info"):
+			var info = enemy_node.call("get_hit_info", global_position, dir, reach)
+			hit = bool(info.get("hit", false))
+			multiplier = float(info.get("multiplier", 1.0))
+		elif enemy_node.has_method("is_hit_by_attack"):
 			hit = bool(enemy_node.call("is_hit_by_attack", global_position, dir, reach))
 		else:
 			var to_enemy: Vector2 = enemy_node.global_position - global_position
 			hit = to_enemy.length() <= reach and to_enemy.dot(dir) > 0.0
 		if hit:
 			hit_any = true
+			var final_damage := maxi(1, int(round(float(damage) * multiplier)))
 			if enemy_node.has_method("take_damage_from"):
-				enemy_node.call("take_damage_from", damage, global_position)
+				enemy_node.call("take_damage_from", final_damage, global_position)
 			else:
-				enemy_node.call("take_damage", damage)
+				enemy_node.call("take_damage", final_damage)
 			if stagger > 0.0 and enemy_node.has_method("apply_stagger"):
 				enemy_node.call("apply_stagger", stagger)
 	return hit_any

@@ -25,6 +25,7 @@ Global="*res://globals/global.gd"
 Settings="*res://globals/settings.gd"
 Sfx="*res://globals/sfx.gd"
 SaveGame="*res://globals/save_game.gd"
+TestJump="*res://globals/test_jump_menu.gd"
 
 [display]
 

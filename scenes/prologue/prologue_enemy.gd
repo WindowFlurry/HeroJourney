@@ -166,17 +166,31 @@ func _update_animation(delta: float) -> void:
 	sprite.frame = row * 26 + column
 
 
+func get_hit_boxes() -> Array:
+	var frame := sprite.texture.get_size() / Vector2(26, 4)
+	var sx := sprite.scale.x
+	var top := sprite.position.y - frame.y * sx * 0.5
+	var w := frame.x * sx * 0.72
+	var h := frame.y * sx * 0.9
+	return [
+		{
+			"rect": Rect2(global_position.x - w * 0.5, global_position.y + top, w, h),
+			"multiplier": 1.0,
+			"region": "body",
+		},
+	]
+
+
+func get_hit_info(attacker_pos: Vector2, dir: Vector2, reach: float) -> Dictionary:
+	return CombatHit.melee(get_hit_boxes(), attacker_pos, dir, reach)
+
+
+func hit_test_projectile(point: Vector2, radius: float) -> Dictionary:
+	return CombatHit.point(get_hit_boxes(), point, radius)
+
+
 func is_hit_by_attack(attacker_pos: Vector2, dir: Vector2, reach: float) -> bool:
-	var center := global_position + Vector2(0, -11)
-	var extents := Vector2(9, 12)
-	var local := attacker_pos - center
-	if absf(local.x) <= extents.x and absf(local.y) <= extents.y:
-		return true
-	var closest := center + Vector2(clampf(local.x, -extents.x, extents.x), clampf(local.y, -extents.y, extents.y))
-	var offset := closest - attacker_pos
-	if offset.length() > reach:
-		return false
-	return offset.length() < 0.5 or offset.normalized().dot(dir) > 0.0
+	return bool(get_hit_info(attacker_pos, dir, reach).get("hit", false))
 
 
 func take_damage(amount: int) -> void:

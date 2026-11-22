@@ -437,21 +437,25 @@ func _update_anim(delta: float) -> void:
 				_set_frame(F_IDLE_A)
 
 
+func get_hit_boxes() -> Array:
+	var base := global_position
+	return [
+		{"rect": Rect2(base + Vector2(-30, -178), Vector2(60, 54)), "multiplier": 1.35, "region": "head"},
+		{"rect": Rect2(base + Vector2(-44, -124), Vector2(88, 76)), "multiplier": 1.0, "region": "body"},
+		{"rect": Rect2(base + Vector2(-40, -48), Vector2(80, 48)), "multiplier": 0.75, "region": "feet"},
+	]
+
+
+func get_hit_info(attacker_pos: Vector2, dir: Vector2, reach: float) -> Dictionary:
+	return CombatHit.melee(get_hit_boxes(), attacker_pos, dir, reach)
+
+
+func hit_test_projectile(point: Vector2, radius: float) -> Dictionary:
+	return CombatHit.point(get_hit_boxes(), point, radius)
+
+
 func is_hit_by_attack(attacker_pos: Vector2, dir: Vector2, reach: float) -> bool:
-	var center := global_position + body_center
-	var local := attacker_pos - center
-	if absf(local.x) <= body_extents.x and absf(local.y) <= body_extents.y:
-		return true
-	var closest := center + Vector2(
-		clampf(local.x, -body_extents.x, body_extents.x),
-		clampf(local.y, -body_extents.y, body_extents.y)
-	)
-	var delta := closest - attacker_pos
-	if delta.length() > reach:
-		return false
-	if delta.length() < 0.5:
-		return true
-	return delta.normalized().dot(dir) > 0.0
+	return bool(get_hit_info(attacker_pos, dir, reach).get("hit", false))
 
 
 func take_damage(amount: int) -> void:

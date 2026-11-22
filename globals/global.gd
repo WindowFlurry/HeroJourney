@@ -77,6 +77,11 @@ var prologue_scene_spawn := ""
 var prologue_travel := false
 var guild_registered := false
 var first_stele_lit := false
+var roland_defeated := false
+var second_stele_lit := false
+var monastery_chest_opened := false
+var monastery_chapel_open := false
+var monastery_right_seal := false
 
 
 func _ready() -> void:
@@ -377,6 +382,11 @@ func apply_save_data(data: Dictionary) -> void:
 		east_gate_cleared = bool(flags.get("east_gate_cleared", flags.get("riftwing_defeated", false)))
 		guild_registered = bool(flags.get("guild_registered", false))
 		first_stele_lit = bool(flags.get("first_stele_lit", false))
+		roland_defeated = bool(flags.get("roland_defeated", false))
+		second_stele_lit = bool(flags.get("second_stele_lit", false))
+		monastery_chest_opened = bool(flags.get("monastery_chest_opened", false))
+		monastery_chapel_open = bool(flags.get("monastery_chapel_open", false))
+		monastery_right_seal = bool(flags.get("monastery_right_seal", false))
 	var saved_hotbar = data.get("hotbar", [])
 	hotbar = ["", "", "", ""]
 	hotbar_counts = [0, 0, 0, 0]
@@ -447,6 +457,11 @@ func reset_state() -> void:
 	east_gate_cleared = false
 	guild_registered = false
 	first_stele_lit = false
+	roland_defeated = false
+	second_stele_lit = false
+	monastery_chest_opened = false
+	monastery_chapel_open = false
+	monastery_right_seal = false
 	prologue_scene_spawn = ""
 	prologue_travel = false
 	inventory_changed.emit()

@@ -64,7 +64,16 @@ func setup_enemy_target(new_direction: Vector2, new_speed: float, new_damage: in
 func _physics_process(delta: float) -> void:
 	if dead:
 		return
-	global_position += direction * speed * delta
+	var old_position := global_position
+	var next_position := old_position + direction * speed * delta
+	var query := PhysicsRayQueryParameters2D.create(old_position, next_position, 1)
+	query.collide_with_areas = false
+	var wall_hit := get_world_2d().direct_space_state.intersect_ray(query)
+	if not wall_hit.is_empty():
+		global_position = wall_hit.position
+		_finish(wall_hit.position)
+		return
+	global_position = next_position
 	life -= delta
 	if projectile_style != "arrow":
 		rotation += delta * 2.5
@@ -85,9 +94,15 @@ func _check_enemies() -> void:
 		var enemy := node as Node2D
 		if enemy == null or enemy.is_queued_for_deletion():
 			continue
-		if global_position.distance_to(_enemy_center(enemy)) > _enemy_hit_radius(enemy):
+		var multiplier := 1.0
+		if enemy.has_method("hit_test_projectile"):
+			var info = enemy.call("hit_test_projectile", global_position, radius + 4.0)
+			if not bool(info.get("hit", false)):
+				continue
+			multiplier = float(info.get("multiplier", 1.0))
+		elif global_position.distance_to(_enemy_center(enemy)) > _enemy_hit_radius(enemy):
 			continue
-		_damage_enemy(enemy)
+		_damage_enemy(enemy, multiplier)
 		if not explode_on_impact:
 			_finish(global_position)
 			return
@@ -109,15 +124,16 @@ func _check_player() -> void:
 		_finish(global_position)
 
 
-func _damage_enemy(enemy: Node2D) -> void:
+func _damage_enemy(enemy: Node2D, multiplier: float = 1.0) -> void:
 	var id := enemy.get_instance_id()
 	if hit_targets.has(id):
 		return
 	hit_targets[id] = true
+	var final_damage := maxi(1, int(round(float(damage) * multiplier)))
 	if enemy.has_method("take_damage_from"):
-		enemy.call("take_damage_from", damage, global_position)
+		enemy.call("take_damage_from", final_damage, global_position)
 	else:
-		enemy.call("take_damage", damage)
+		enemy.call("take_damage", final_damage)
 
 
 func _explode() -> void:
@@ -125,12 +141,24 @@ func _explode() -> void:
 		return
 	dead = true
 	var blast_radius := 34.0
-	for node in get_tree().get_nodes_in_group("Enemies"):
-		var enemy := node as Node2D
-		if enemy == null or enemy.is_queued_for_deletion():
-			continue
-		if global_position.distance_to(_enemy_center(enemy)) <= blast_radius + _enemy_hit_radius(enemy) * 0.45:
-			_damage_enemy(enemy)
+	if friendly:
+		for node in get_tree().get_nodes_in_group("Enemies"):
+			var enemy := node as Node2D
+			if enemy == null or enemy.is_queued_for_deletion():
+				continue
+			var multiplier := 1.0
+			if enemy.has_method("hit_test_projectile"):
+				var info = enemy.call("hit_test_projectile", global_position, blast_radius)
+				if not bool(info.get("hit", false)):
+					continue
+				multiplier = float(info.get("multiplier", 1.0))
+			elif global_position.distance_to(_enemy_center(enemy)) > blast_radius + _enemy_hit_radius(enemy) * 0.45:
+				continue
+			var los := PhysicsRayQueryParameters2D.create(global_position, enemy.global_position, 1)
+			los.collide_with_areas = false
+			if not get_world_2d().direct_space_state.intersect_ray(los).is_empty():
+				continue
+			_damage_enemy(enemy, multiplier)
 	_spawn_burst()
 	queue_free()
 

@@ -9,6 +9,7 @@ const TEXTURES: Array[Texture2D] = [
 ]
 
 @export var style_index := -1
+@export var scale_override := 0.0
 
 @onready var sprite: Sprite2D = $Sprite2D
 
@@ -22,6 +23,6 @@ func _ready() -> void:
 	sprite.position = Vector2(0, 3.0 - tex.get_height() * 0.5)
 	var hash_value := int(absf(global_position.x * 17.0 + global_position.y * 31.0))
 	sprite.flip_h = hash_value % 2 == 0
-	var s := 0.9 + float(hash_value % 7) * 0.03
+	var s := scale_override if scale_override > 0.0 else 1.0
 	scale = Vector2(s, s)
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST

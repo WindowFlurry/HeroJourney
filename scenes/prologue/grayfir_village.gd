@@ -54,7 +54,9 @@ var skill_guide_active := false
 var test_menu_layer: CanvasLayer
 var test_menu_overlay: Control
 var test_menu_first_button: Button
+var test_target_button: Button
 var test_menu_open := false
+var test_target_second := false
 
 
 func on_scene_ready() -> void:
@@ -337,19 +339,19 @@ func _build_test_menu() -> void:
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	test_menu_overlay.add_child(dim)
 	var panel := Panel.new()
-	panel.position = Vector2(110, 48)
-	panel.size = Vector2(260, 174)
+	panel.position = Vector2(110, 38)
+	panel.size = Vector2(260, 200)
 	panel.add_theme_stylebox_override(
 		"panel",
 		hud.call("_style", Color(0.055, 0.043, 0.032, 0.98), Color(0.72, 0.55, 0.28), 3)
 	)
 	test_menu_overlay.add_child(panel)
-	var title := hud.call("_label", "测试跳转 · 第一关", 11, Color(1.0, 0.84, 0.5)) as Label
+	var title := hud.call("_label", "测试跳转", 11, Color(1.0, 0.84, 0.5)) as Label
 	title.position = Vector2(0, 8)
 	title.size = Vector2(260, 18)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	panel.add_child(title)
-	var sub := hud.call("_label", "选择职业后自动完成序章，进入白鹿边境", 6, Color(0.78, 0.72, 0.62)) as Label
+	var sub := hud.call("_label", "选择职业后自动完成序章，进入测试关卡", 6, Color(0.78, 0.72, 0.62)) as Label
 	sub.position = Vector2(10, 29)
 	sub.size = Vector2(240, 12)
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -361,18 +363,24 @@ func _build_test_menu() -> void:
 		b.position = Vector2(34, 48 + i * 28)
 		b.size = Vector2(192, 22)
 		b.custom_minimum_size = Vector2(192, 22)
-		b.pressed.connect(_debug_jump_to_first_level.bind(profession_ids[i]))
+		b.pressed.connect(_debug_jump.bind(profession_ids[i]))
 		panel.add_child(b)
 		if i == 0:
 			test_menu_first_button = b
+	test_target_button = hud.call("_button", "测试目标：第一关", 7) as Button
+	test_target_button.position = Vector2(34, 132)
+	test_target_button.size = Vector2(192, 20)
+	test_target_button.custom_minimum_size = Vector2(192, 20)
+	test_target_button.pressed.connect(_toggle_test_target)
+	panel.add_child(test_target_button)
 	var close := hud.call("_button", "关闭（Tab / Esc）", 7) as Button
-	close.position = Vector2(80, 136)
+	close.position = Vector2(80, 156)
 	close.size = Vector2(100, 20)
 	close.custom_minimum_size = Vector2(100, 20)
 	close.pressed.connect(_close_test_menu)
 	panel.add_child(close)
 	var hint := hud.call("_label", "测试用：直接写入完整序章状态", 5, Color(0.6, 0.56, 0.48)) as Label
-	hint.position = Vector2(0, 160)
+	hint.position = Vector2(0, 180)
 	hint.size = Vector2(260, 10)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	panel.add_child(hint)
@@ -399,6 +407,30 @@ func _close_test_menu() -> void:
 		return
 	if not bool(hud.get("dialog_active")) and not bool(hud.get("select_active")) and not bool(hud.get("character_open")) and not bool(hud.get("death_open")):
 		player.call("set_input_locked", false)
+
+
+func _toggle_test_target() -> void:
+	test_target_second = not test_target_second
+	if test_target_button != null:
+		test_target_button.text = "测试目标：第二关" if test_target_second else "测试目标：第一关"
+
+
+func _debug_jump(profession_id: String) -> void:
+	if test_target_second:
+		_debug_jump_to_first_level(profession_id, false)
+		Global.first_stele_lit = true
+		Global.boss_defeated = true
+		Global.roland_defeated = false
+		Global.second_stele_lit = false
+		Global.monastery_chest_opened = false
+		Global.monastery_right_seal = false
+		Global.monastery_chapel_open = false
+		SaveGame.pending_player_data["position"] = [560.0, 680.0]
+		Global.prologue_scene_spawn = ""
+		Global.prologue_travel = false
+		get_tree().change_scene_to_file("res://scenes/monastery/monastery.tscn")
+	else:
+		_debug_jump_to_first_level(profession_id)
 
 
 func _debug_jump_to_first_level(profession_id: String, change_scene: bool = true) -> void:
