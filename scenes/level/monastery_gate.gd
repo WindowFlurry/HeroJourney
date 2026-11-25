@@ -3,7 +3,7 @@ extends Node2D
 const GATE_TEXTURE: Texture2D = preload("res://graphics/monastery/monastery_gate.png")
 const GLOW: Texture2D = preload("res://graphics/fx/glow_white.png")
 const MONASTERY_SCENE := "res://scenes/monastery/monastery.tscn"
-const MONASTERY_ENTRANCE := Vector2(560, 680)
+const MONASTERY_ENTRANCE := Vector2(888, 1270)
 
 var player: Node2D
 var hud

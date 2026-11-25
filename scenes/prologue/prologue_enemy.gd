@@ -27,6 +27,8 @@ var body_shape: CollisionShape2D
 var base_tint := Color.WHITE
 var attack_cooldown := 0.6
 var windup_timer := 0.0
+var retreat_timer := 0.0
+var retreat_dir := Vector2.ZERO
 var facing := Vector2.DOWN
 var walk_clock := 0.0
 var move_frame := 0
@@ -101,6 +103,13 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 		return
 
+	if retreat_timer > 0.0:
+		retreat_timer -= delta
+		velocity = retreat_dir * move_speed * 0.8
+		_update_animation(delta)
+		move_and_slide()
+		return
+
 	_process_normal(delta)
 	_update_animation(delta)
 	move_and_slide()
@@ -110,18 +119,34 @@ func _process_normal(delta: float) -> void:
 	var to_player := player.global_position - global_position
 	var distance := to_player.length()
 	facing = _cardinal(to_player)
-	if distance <= attack_range:
+	if enemy_kind == "ranged":
+		# 远程保持距离，玩家贴近时后退，不贴脸
+		if distance < 74.0:
+			velocity = -to_player.normalized() * move_speed * 0.85
+			walk_clock += delta
+			return
+		if distance <= attack_range:
+			velocity = Vector2.ZERO
+			if attack_cooldown <= 0.0:
+				_start_normal_windup()
+			return
+		velocity = to_player.normalized() * move_speed
+		walk_clock += delta
+		return
+
+	# 近战保持攻击距离：太近后退，不在玩家身上磨蹭
+	if distance < attack_range - 2.0:
+		velocity = -to_player.normalized() * move_speed * 0.9
+		walk_clock += delta
+		return
+	if distance <= attack_range + 8.0:
 		velocity = Vector2.ZERO
 		if attack_cooldown <= 0.0:
 			_start_normal_windup()
+		else:
+			velocity = -to_player.normalized() * move_speed * 0.25
 		return
-
-	var desired := to_player.normalized()
-	if enemy_kind == "ranged" and distance < 78.0:
-		desired = -desired
-	elif enemy_kind == "ranged" and distance < attack_range - 10.0:
-		desired = desired.orthogonal() * (1.0 if int(Time.get_ticks_msec() / 1500.0) % 2 == 0 else -1.0)
-	velocity = desired * move_speed
+	velocity = to_player.normalized() * move_speed
 	walk_clock += delta
 
 
@@ -133,6 +158,9 @@ func _start_normal_windup() -> void:
 
 
 func _execute_normal_attack() -> void:
+	if player != null:
+		retreat_dir = (global_position - player.global_position).normalized()
+		retreat_timer = 0.2 if enemy_kind == "ranged" else 0.32
 	if enemy_kind == "ranged":
 		if player != null:
 			var target: Vector2 = player.global_position + Vector2(0, -12)
@@ -212,6 +240,7 @@ func take_damage_from(amount: int, _source_pos: Vector2) -> void:
 func apply_stagger(duration: float) -> void:
 	attack_cooldown = maxf(attack_cooldown, duration)
 	windup_timer = 0.0
+	retreat_timer = 0.0
 
 
 func _die() -> void:

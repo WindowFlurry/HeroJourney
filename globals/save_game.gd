@@ -74,6 +74,17 @@ func save_game(location: String) -> void:
 			"monastery_chest_opened": Global.monastery_chest_opened,
 			"monastery_chapel_open": Global.monastery_chapel_open,
 			"monastery_right_seal": Global.monastery_right_seal,
+			"monastery_candles_lit": Global.monastery_candles_lit,
+			"coast_lens_found": Global.coast_lens_found,
+			"coast_falcon_defeated": Global.coast_falcon_defeated,
+			"coast_tide_guardian_defeated": Global.coast_tide_guardian_defeated,
+			"coast_tide_key": Global.coast_tide_key,
+			"coast_lighthouse_guards_defeated": Global.coast_lighthouse_guards_defeated,
+			"coast_lighthouse_lit": Global.coast_lighthouse_lit,
+			"coast_chest_opened": Global.coast_chest_opened,
+			"coast_vault_opened": Global.coast_vault_opened,
+			"ska_defeated": Global.ska_defeated,
+			"third_stele_lit": Global.third_stele_lit,
 		},
 	}
 	var file := FileAccess.open(PATH, FileAccess.WRITE)

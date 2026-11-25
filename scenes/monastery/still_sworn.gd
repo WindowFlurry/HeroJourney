@@ -33,6 +33,7 @@ var attack_cd := 1.2
 var shield_cd := 3.0
 var shielded := false
 var shield_timer := 0.0
+var shield_weakened := false
 var start_position := Vector2.ZERO
 var warning: Node2D
 var charge_line: Line2D
@@ -143,6 +144,13 @@ func activate() -> void:
 	Sfx.play("danger", 0.6, 0.0)
 
 
+func apply_shield_weakness() -> void:
+	if shield_weakened:
+		return
+	shield_weakened = true
+	shield_cooldown_time = 13.0
+
+
 func reset_fight() -> void:
 	if dead:
 		return
@@ -222,10 +230,10 @@ func _physics_process(delta: float) -> void:
 			if shield_timer <= 0.0:
 				shielded = false
 				sprite.modulate = Color.WHITE
-				if to_player.length() <= 88.0:
+				if not shield_weakened and to_player.length() <= 88.0:
 					_do_counter()
 				state = "recover"
-				recover_timer = 0.45
+				recover_timer = 0.25 if shield_weakened else 0.45
 				_update_frame(0)
 	move_and_slide()
 
@@ -245,7 +253,7 @@ func _choose_attack(distance: float) -> void:
 func _start_shield() -> void:
 	state = "shield"
 	shielded = true
-	shield_timer = 1.1
+	shield_timer = 0.45 if shield_weakened else 1.1
 	shield_cd = shield_cooldown_time
 	attack_cd = 0.8
 	sprite.modulate = Color(0.65, 0.8, 1.0)
@@ -309,6 +317,10 @@ func _do_charge() -> void:
 	if dir == Vector2.ZERO:
 		dir = Vector2.RIGHT
 	var end := start + dir * minf(start.distance_to(charge_target) + 70.0, 190.0)
+	# 冲锋必须留在礼拜堂内部，不能穿出地图或卡在墙外
+	var arena := Rect2(440.0, 120.0, 920.0, 210.0)
+	end.x = clampf(end.x, arena.position.x, arena.end.x)
+	end.y = clampf(end.y, arena.position.y, arena.end.y)
 	var closest := Geometry2D.get_closest_point_to_segment(player.global_position, start, end)
 	if closest.distance_to(player.global_position) <= 30.0:
 		player.call("take_damage", charge_damage)

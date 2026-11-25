@@ -425,7 +425,8 @@ func _debug_jump(profession_id: String) -> void:
 		Global.monastery_chest_opened = false
 		Global.monastery_right_seal = false
 		Global.monastery_chapel_open = false
-		SaveGame.pending_player_data["position"] = [560.0, 680.0]
+		Global.monastery_candles_lit = 0
+		SaveGame.pending_player_data["position"] = [888.0, 1270.0]
 		Global.prologue_scene_spawn = ""
 		Global.prologue_travel = false
 		get_tree().change_scene_to_file("res://scenes/monastery/monastery.tscn")

@@ -18,16 +18,20 @@ const STATS := {
 		"ranged": true,
 		"color": Color(0.55, 0.72, 1.0),
 		"size": Vector2(40, 40),
+		"aggro": 185.0,
+		"deaggro": 380.0,
 	},
 	"bone_gleaner": {
 		"health": 42,
 		"damage": 10,
-		"speed": 62.0,
+		"speed": 80.0,
 		"range": 27.0,
 		"cooldown": 1.25,
 		"ranged": false,
 		"color": Color(1.0, 0.68, 0.42),
 		"size": Vector2(48, 40),
+		"aggro": 165.0,
+		"deaggro": 340.0,
 	},
 	"ember_crown": {
 		"health": 82,
@@ -38,6 +42,8 @@ const STATS := {
 		"ranged": true,
 		"color": Color(1.0, 0.42, 0.18),
 		"size": Vector2(48, 48),
+		"aggro": 215.0,
+		"deaggro": 430.0,
 	},
 }
 
@@ -53,6 +59,14 @@ var is_ranged := true
 var projectile_color := Color(0.55, 0.72, 1.0)
 var frame_size := Vector2(40, 40)
 var base_tint := Color.WHITE
+var aggro_range := 185.0
+var deaggro_range := 380.0
+var awake := false
+var home := Vector2.ZERO
+var idle_target := Vector2.ZERO
+var idle_timer := 0.0
+var retreat_timer := 0.0
+var retreat_dir := Vector2.ZERO
 var player: Node2D
 var nav: Node
 var nav_path: Array[Vector2] = []
@@ -78,6 +92,8 @@ func _ready() -> void:
 	nav = get_tree().get_first_node_in_group("MonasteryNav")
 	collision_layer = 4
 	collision_mask = 3
+	home = global_position
+	idle_target = home
 	_build_visual()
 	_configure_stats()
 	health = max_health
@@ -118,7 +134,12 @@ func _configure_stats() -> void:
 	attack_cooldown = float(stats["cooldown"])
 	is_ranged = bool(stats["ranged"])
 	projectile_color = stats["color"]
+	aggro_range = float(stats["aggro"])
+	deaggro_range = float(stats["deaggro"])
 	base_tint = Color.WHITE
+	if not is_ranged and randf() < 0.16:
+		move_speed = maxf(move_speed * 1.55, 162.0)
+		base_tint = Color(1.0, 0.78, 0.5)
 	sprite.modulate = base_tint
 
 
@@ -146,13 +167,44 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 		return
 
+	if retreat_timer > 0.0:
+		retreat_timer -= delta
+		velocity = retreat_dir * move_speed * 0.85
+		facing_right = velocity.x >= 0.0
+		_update_frame(1)
+		move_and_slide()
+		return
+
 	var to_player := player.global_position - global_position
 	var distance := to_player.length()
 	facing_right = to_player.x >= 0.0
-	var has_los := true
-	if nav != null and is_instance_valid(nav):
-		has_los = bool(nav.call("has_line_of_sight", global_position, player.global_position))
+	var has_los := _has_line_of_sight()
+	if not awake:
+		if distance <= aggro_range and has_los:
+			awake = true
+			Sfx.play("warn", 1.35, -18.0)
+		else:
+			_idle_wander(delta)
+			move_and_slide()
+			return
+	if distance > deaggro_range:
+		awake = false
+		nav_path.clear()
+		nav_timer = 0.0
+		_idle_wander(delta)
+		move_and_slide()
+		return
 	if is_ranged:
+		if has_los and distance < 80.0:
+			velocity = -to_player.normalized() * move_speed * 0.9
+			facing_right = velocity.x >= 0.0
+			_update_frame(1)
+			move_and_slide()
+			if get_slide_collision_count() > 0 and cooldown_timer <= 0.0:
+				velocity = Vector2.ZERO
+				_start_attack()
+				_update_frame(2)
+			return
 		if has_los and distance <= attack_range:
 			velocity = Vector2.ZERO
 			if cooldown_timer <= 0.0:
@@ -163,17 +215,50 @@ func _physics_process(delta: float) -> void:
 			move_and_slide()
 			return
 	else:
-		if has_los and distance <= attack_range + 4.0:
+		if has_los and distance < attack_range - 4.0:
+			velocity = -to_player.normalized() * move_speed * 0.9
+			facing_right = velocity.x >= 0.0
+			_update_frame(1)
+			move_and_slide()
+			if get_slide_collision_count() > 0 and cooldown_timer <= 0.0:
+				velocity = Vector2.ZERO
+				_start_attack()
+				_update_frame(2)
+			return
+		if has_los and distance <= attack_range + 6.0:
 			velocity = Vector2.ZERO
 			if cooldown_timer <= 0.0:
 				_start_attack()
 				_update_frame(2)
 			else:
-				_update_frame(0)
+				velocity = -to_player.normalized() * move_speed * 0.22
+				_update_frame(1)
 			move_and_slide()
 			return
 	_move_with_nav(delta, to_player)
 	move_and_slide()
+
+
+func _has_line_of_sight() -> bool:
+	if nav != null and is_instance_valid(nav):
+		return bool(nav.call("has_line_of_sight", global_position, player.global_position))
+	return true
+
+
+func _idle_wander(delta: float) -> void:
+	idle_timer -= delta
+	if idle_timer <= 0.0:
+		idle_timer = randf_range(2.4, 4.8)
+		idle_target = home + Vector2(randf_range(-36.0, 36.0), randf_range(-28.0, 28.0))
+	var to_target := idle_target - global_position
+	if to_target.length() > 6.0:
+		velocity = to_target.normalized() * move_speed * 0.35
+		facing_right = velocity.x >= 0.0
+		walk_clock += delta
+		_update_frame(1)
+	else:
+		velocity = Vector2.ZERO
+		_update_frame(0)
 
 
 func _move_with_nav(delta: float, to_player: Vector2) -> void:
@@ -211,6 +296,8 @@ func _start_attack() -> void:
 func _execute_attack() -> void:
 	if player == null or bool(player.get("dead")):
 		return
+	retreat_dir = (global_position - player.global_position).normalized()
+	retreat_timer = 0.2 if is_ranged else 0.35
 	var target: Vector2 = player.global_position + Vector2(0, -12)
 	var origin := global_position + Vector2(0, -22)
 	var dir := (target - origin).normalized()
@@ -265,6 +352,7 @@ func take_damage(amount: int) -> void:
 func take_damage_from(amount: int, _source_pos: Vector2) -> void:
 	if dead:
 		return
+	awake = true
 	health = maxi(health - amount, 0)
 	Global.spawn_damage_number(global_position + Vector2(0, -frame_size.y * 0.75), amount)
 	sprite.modulate = Color.WHITE

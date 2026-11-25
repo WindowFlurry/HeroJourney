@@ -82,6 +82,17 @@ var second_stele_lit := false
 var monastery_chest_opened := false
 var monastery_chapel_open := false
 var monastery_right_seal := false
+var monastery_candles_lit := 0
+var coast_lens_found := false
+var coast_falcon_defeated := false
+var coast_tide_guardian_defeated := false
+var coast_tide_key := false
+var coast_lighthouse_guards_defeated := false
+var coast_lighthouse_lit := false
+var coast_chest_opened := false
+var coast_vault_opened := false
+var ska_defeated := false
+var third_stele_lit := false
 
 
 func _ready() -> void:
@@ -387,6 +398,17 @@ func apply_save_data(data: Dictionary) -> void:
 		monastery_chest_opened = bool(flags.get("monastery_chest_opened", false))
 		monastery_chapel_open = bool(flags.get("monastery_chapel_open", false))
 		monastery_right_seal = bool(flags.get("monastery_right_seal", false))
+		monastery_candles_lit = int(flags.get("monastery_candles_lit", 0))
+		coast_lens_found = bool(flags.get("coast_lens_found", false))
+		coast_falcon_defeated = bool(flags.get("coast_falcon_defeated", false))
+		coast_tide_guardian_defeated = bool(flags.get("coast_tide_guardian_defeated", false))
+		coast_tide_key = bool(flags.get("coast_tide_key", false))
+		coast_lighthouse_guards_defeated = bool(flags.get("coast_lighthouse_guards_defeated", false))
+		coast_lighthouse_lit = bool(flags.get("coast_lighthouse_lit", false))
+		coast_chest_opened = bool(flags.get("coast_chest_opened", false))
+		coast_vault_opened = bool(flags.get("coast_vault_opened", false))
+		ska_defeated = bool(flags.get("ska_defeated", false))
+		third_stele_lit = bool(flags.get("third_stele_lit", false))
 	var saved_hotbar = data.get("hotbar", [])
 	hotbar = ["", "", "", ""]
 	hotbar_counts = [0, 0, 0, 0]
@@ -462,6 +484,17 @@ func reset_state() -> void:
 	monastery_chest_opened = false
 	monastery_chapel_open = false
 	monastery_right_seal = false
+	monastery_candles_lit = 0
+	coast_lens_found = false
+	coast_falcon_defeated = false
+	coast_tide_guardian_defeated = false
+	coast_tide_key = false
+	coast_lighthouse_guards_defeated = false
+	coast_lighthouse_lit = false
+	coast_chest_opened = false
+	coast_vault_opened = false
+	ska_defeated = false
+	third_stele_lit = false
 	prologue_scene_spawn = ""
 	prologue_travel = false
 	inventory_changed.emit()

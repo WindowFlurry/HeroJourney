@@ -226,6 +226,11 @@ func _process_melee(delta: float) -> void:
 		_wander(delta)
 		return
 
+	if retreat_time > 0.0:
+		retreat_time -= delta
+		velocity = retreat_direction * move_speed * 0.8
+		return
+
 	var to_player := player.global_position - global_position
 	var distance := to_player.length()
 	facing = _cardinal(to_player)
@@ -400,6 +405,8 @@ func _melee_attack() -> void:
 		player.call("take_damage", damage)
 	if player != null:
 		aggro_timer = 3.0
+		retreat_direction = (global_position - player.global_position).normalized()
+		retreat_time = 0.22
 
 
 func _ranged_attack() -> void:

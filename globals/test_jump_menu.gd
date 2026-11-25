@@ -16,13 +16,19 @@ const MAPS := {
 	"second": {
 		"label": "第二关 · 失誓修道院",
 		"scene": "res://scenes/monastery/monastery.tscn",
-		"spawn": Vector2(560, 680),
+		"spawn": Vector2(888, 1270),
+	},
+	"third": {
+		"label": "第三关 · 赤烬海岸",
+		"scene": "res://scenes/coast/coast.tscn",
+		"spawn": Vector2(240, 1500),
 	},
 }
 const TEST_SCENES := [
 	"res://scenes/prologue/grayfir_village.tscn",
 	"res://scenes/level/game.tscn",
 	"res://scenes/monastery/monastery.tscn",
+	"res://scenes/coast/coast.tscn",
 ]
 const PROFESSIONS := ["warrior", "ranger", "mage"]
 const PROFESSION_NAMES := {"warrior": "战士", "ranger": "游侠", "mage": "法师"}
@@ -65,7 +71,7 @@ func _build_ui() -> void:
 	overlay.add_child(dim)
 	panel = Panel.new()
 	panel.position = Vector2(80, 18)
-	panel.size = Vector2(320, 234)
+	panel.size = Vector2(320, 244)
 	panel.add_theme_stylebox_override("panel", _style(Color(0.055, 0.043, 0.032, 0.98), Color(0.72, 0.55, 0.28), 3))
 	overlay.add_child(panel)
 
@@ -103,25 +109,25 @@ func _build_ui() -> void:
 	map_label.position = Vector2(14, 100)
 	map_label.size = Vector2(60, 12)
 	panel.add_child(map_label)
-	var y := 116
-	for id in ["village", "first", "second"]:
-		var b := _button(str(MAPS[id]["label"]), 8)
+	var y := 112
+	for id in ["village", "first", "second", "third"]:
+		var b := _button(str(MAPS[id]["label"]), 7)
 		b.position = Vector2(14, y)
-		b.size = Vector2(292, 24)
-		b.custom_minimum_size = Vector2(292, 24)
+		b.size = Vector2(292, 20)
+		b.custom_minimum_size = Vector2(292, 20)
 		b.pressed.connect(_jump_to.bind(id))
 		panel.add_child(b)
 		map_buttons[id] = b
-		y += 28
+		y += 22
 
 	var close := _button("关闭", 7)
-	close.position = Vector2(110, 200)
+	close.position = Vector2(110, 204)
 	close.size = Vector2(100, 20)
 	close.custom_minimum_size = Vector2(100, 20)
 	close.pressed.connect(_close)
 	panel.add_child(close)
 	var hint := _label("Tab / Esc 关闭", 5, Color(0.6, 0.56, 0.48))
-	hint.position = Vector2(0, 222)
+	hint.position = Vector2(0, 226)
 	hint.size = Vector2(320, 10)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	panel.add_child(hint)
@@ -272,8 +278,30 @@ func _prepare_state(profession: String, destination: String, spawn: Vector2) -> 
 	Global.monastery_chest_opened = false
 	Global.monastery_right_seal = false
 	Global.monastery_chapel_open = false
+	Global.monastery_candles_lit = 0
+	Global.coast_lens_found = false
+	Global.coast_falcon_defeated = false
+	Global.coast_tide_guardian_defeated = false
+	Global.coast_tide_key = false
+	Global.coast_lighthouse_guards_defeated = false
+	Global.coast_lighthouse_lit = false
+	Global.coast_chest_opened = false
+	Global.coast_vault_opened = false
+	Global.ska_defeated = false
+	Global.third_stele_lit = false
 
-	if destination == "second":
+	if destination == "third":
+		# 第三关的前置：前两关都已完成
+		Global.bridge_repaired = true
+		Global.material_crafted = true
+		Global.mask_crafted = true
+		Global.mask_equipped = true
+		Global.boss_defeated = true
+		Global.first_stele_lit = true
+		Global.roland_defeated = true
+		Global.second_stele_lit = true
+		Global.monastery_chapel_open = true
+	elif destination == "second":
 		# 第二关的前置：第一关已完成
 		Global.bridge_repaired = true
 		Global.material_crafted = true

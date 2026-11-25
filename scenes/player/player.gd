@@ -127,6 +127,8 @@ var mage_charge_timer := 0.0
 var campfire_heal_accum := 0.0
 var campfire_plus_timer := 0.0
 var last_hit_from_boss := false
+var holy_blessing_timer := 0.0
+var holy_blessing_bonus := 0
 
 const LOST_BAG_SCENE: PackedScene = preload("res://scenes/level/lost_bag.tscn")
 const LOST_ITEM_IDS := ["gland", "shell", "slime", "herb", "vine"]
@@ -175,6 +177,8 @@ func _physics_process(delta: float) -> void:
 		invulnerable_timer -= delta
 	if weapon_skill_cd_timer > 0.0:
 		weapon_skill_cd_timer -= delta
+	if holy_blessing_timer > 0.0:
+		holy_blessing_timer = maxf(0.0, holy_blessing_timer - delta)
 
 	if input_locked:
 		direction = Vector2.ZERO
@@ -856,11 +860,17 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func get_weapon_damage() -> int:
+	var bonus := holy_blessing_bonus if holy_blessing_timer > 0.0 else 0
 	if not profession.is_empty():
 		# 主岛的“攻击 +10%”合成升级同样作用于职业武器
 		var base := float(PROFESSION_DATA[profession]["damage"])
-		return maxi(1, int(round(base * (1.0 + attack_upgrades * 0.1))))
-	return get_weapon_damage_for_upgrades(attack_upgrades)
+		return maxi(1, int(round(base * (1.0 + attack_upgrades * 0.1))) + bonus)
+	return maxi(1, get_weapon_damage_for_upgrades(attack_upgrades) + bonus)
+
+
+func apply_holy_blessing(duration: float = 60.0, bonus: int = 3) -> void:
+	holy_blessing_timer = maxf(holy_blessing_timer, duration)
+	holy_blessing_bonus = maxi(holy_blessing_bonus, bonus)
 
 
 func get_weapon_damage_for_upgrades(upgrades: int) -> int:

@@ -64,7 +64,10 @@ func _process(_delta: float) -> void:
 
 func _talk_mira() -> void:
 	if Global.guild_registered:
-		hud.call("show_dialog", "米拉", "白桦林地已经开放。失誓修道院和赤烬海岸仍在封锁中，先从东侧出口前往白鹿边境吧。")
+		if Global.second_stele_lit:
+			hud.call("show_dialog", "米拉", "三处边境都已经开放。赤烬海岸的灯塔需要重新点亮，否则龙骨祭坛不会现身。")
+		else:
+			hud.call("show_dialog", "米拉", "白桦林地已经开放。失誓修道院和赤烬海岸仍在封锁中，先从东侧出口前往白鹿边境吧。")
 		return
 	var has_letter := int(Global.inventory.get("white_deer_letter", 0)) > 0
 	if not has_letter and not _has_sigil():
