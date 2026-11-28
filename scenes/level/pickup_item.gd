@@ -6,6 +6,8 @@ extends Node2D
 
 var item_id := ""
 var item_name := ""
+var flag_name := ""
+var pickup_notice := ""
 var player: Node2D
 
 
@@ -33,6 +35,17 @@ func collect() -> void:
 	if Global.is_item_full(item_id):
 		return
 	Global.add_item(item_id, 1)
+	if not flag_name.is_empty():
+		Global.set(flag_name, true)
+	var hud := get_tree().get_first_node_in_group("HUD")
+	if item_id == "material" and int(Global.inventory.get("material", 0)) >= 3 and not Global.bridge_repaired:
+		if hud != null:
+			hud.call("show_notice", "三份建材已集齐，尽快赶往断桥！")
+	elif not pickup_notice.is_empty():
+		if hud != null:
+			hud.call("show_notice", pickup_notice)
+	if not flag_name.is_empty():
+		SaveGame.save_game("白桦林地")
 	Sfx.play("pickup")
 	queue_free()
 

@@ -124,7 +124,7 @@ func _build_ui() -> void:
 	close.position = Vector2(110, 204)
 	close.size = Vector2(100, 20)
 	close.custom_minimum_size = Vector2(100, 20)
-	close.pressed.connect(_close)
+	close.pressed.connect(close_menu)
 	panel.add_child(close)
 	var hint := _label("Tab / Esc 关闭", 5, Color(0.6, 0.56, 0.48))
 	hint.position = Vector2(0, 226)
@@ -176,7 +176,7 @@ func _button(text: String, size: int) -> Button:
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("debug_jump"):
 		if is_open:
-			_close()
+			close_menu()
 			get_viewport().set_input_as_handled()
 			return
 		if _is_test_map() and not get_tree().paused:
@@ -184,7 +184,7 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 	if is_open and event.is_action_pressed("pause"):
-		_close()
+		close_menu()
 		get_viewport().set_input_as_handled()
 
 
@@ -217,7 +217,7 @@ func _open() -> void:
 		map_buttons["first"].grab_focus()
 
 
-func _close() -> void:
+func close_menu() -> void:
 	if not is_open:
 		return
 	is_open = false
@@ -250,7 +250,7 @@ func _jump_to(map_id: String) -> void:
 		return
 	var map: Dictionary = MAPS[map_id]
 	var profession := selected_profession
-	_close()
+	close_menu()
 	_prepare_state(profession, map_id, map["spawn"])
 	get_tree().change_scene_to_file(str(map["scene"]))
 
@@ -285,6 +285,13 @@ func _prepare_state(profession: String, destination: String, spawn: Vector2) -> 
 	Global.coast_tide_key = false
 	Global.coast_lighthouse_guards_defeated = false
 	Global.coast_lighthouse_lit = false
+	Global.coast_mirror_cliff_guard = false
+	Global.coast_mirror_cave_guard = false
+	Global.coast_mirror_wreck_guard = false
+	Global.coast_mirror_cliff = false
+	Global.coast_mirror_cave = false
+	Global.coast_mirror_wreck = false
+	Global.coast_beam_aligned = false
 	Global.coast_chest_opened = false
 	Global.coast_vault_opened = false
 	Global.ska_defeated = false

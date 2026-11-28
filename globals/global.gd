@@ -26,6 +26,8 @@ const ITEM_CAPS := {
 	"herb": 5,
 }
 const HOTBAR_SIZE := 4
+const WHITE_DEER_TOWN_SCENE := "res://scenes/prologue/white_deer_town.tscn"
+const WHITE_DEER_GUILD_RETURN := Vector2(360, 190)
 const EQUIPMENT_SLOTS := ["helmet", "chest", "pants", "shoes"]
 
 var inventory := {
@@ -53,6 +55,10 @@ var equipment := {
 }
 
 var bridge_repaired := false
+var bridge_repair_stage := 0
+var bridge_tracking_done := false
+var bridge_crate_west := false
+var bridge_crate_east := false
 var material_crafted := false
 var mask_crafted := false
 var mask_equipped := false
@@ -82,6 +88,7 @@ var second_stele_lit := false
 var monastery_chest_opened := false
 var monastery_chapel_open := false
 var monastery_right_seal := false
+var monastery_bell_solved := false
 var monastery_candles_lit := 0
 var coast_lens_found := false
 var coast_falcon_defeated := false
@@ -89,10 +96,19 @@ var coast_tide_guardian_defeated := false
 var coast_tide_key := false
 var coast_lighthouse_guards_defeated := false
 var coast_lighthouse_lit := false
+var coast_mirror_cliff_guard := false
+var coast_mirror_cave_guard := false
+var coast_mirror_wreck_guard := false
+var coast_mirror_cliff := false
+var coast_mirror_cave := false
+var coast_mirror_wreck := false
+var coast_beam_aligned := false
 var coast_chest_opened := false
 var coast_vault_opened := false
 var ska_defeated := false
 var third_stele_lit := false
+var town_return_pending := false
+var pending_route_unlock := ""
 
 
 func _ready() -> void:
@@ -111,6 +127,30 @@ func quit_game() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	get_tree().quit()
+
+
+func return_to_white_deer_town() -> void:
+	if town_return_pending:
+		return
+	if get_tree().current_scene != null and get_tree().current_scene.scene_file_path == WHITE_DEER_TOWN_SCENE:
+		return
+	var player := get_tree().get_first_node_in_group("Player")
+	if player == null:
+		return
+	town_return_pending = true
+	var test_jump := get_tree().root.get_node_or_null("TestJump")
+	if test_jump != null and bool(test_jump.get("is_open")):
+		test_jump.call("close_menu")
+	var data: Dictionary = player.call("get_save_data")
+	data["position"] = [WHITE_DEER_GUILD_RETURN.x, WHITE_DEER_GUILD_RETURN.y]
+	SaveGame.pending_player_data = data
+	prologue_scene_spawn = "guild"
+	prologue_travel = true
+	prologue_completed = true
+	if player.has_method("set_input_locked"):
+		player.call("set_input_locked", true)
+	get_tree().paused = false
+	get_tree().change_scene_to_file(WHITE_DEER_TOWN_SCENE)
 
 
 func _notification(what: int) -> void:
@@ -373,6 +413,14 @@ func apply_save_data(data: Dictionary) -> void:
 	var flags = data.get("flags", {})
 	if flags is Dictionary:
 		bridge_repaired = bool(flags.get("bridge_repaired", false))
+		bridge_repair_stage = int(flags.get("bridge_repair_stage", 3 if bridge_repaired else 0))
+		bridge_tracking_done = bool(flags.get("bridge_tracking_done", false))
+		bridge_crate_west = bool(flags.get("bridge_crate_west", false))
+		bridge_crate_east = bool(flags.get("bridge_crate_east", false))
+		if bridge_repaired:
+			bridge_repair_stage = 3
+		elif bridge_repair_stage >= 3:
+			bridge_repaired = true
 		material_crafted = bool(flags.get("material_crafted", false))
 		mask_crafted = bool(flags.get("mask_crafted", false))
 		mask_equipped = bool(flags.get("mask_equipped", false))
@@ -398,6 +446,7 @@ func apply_save_data(data: Dictionary) -> void:
 		monastery_chest_opened = bool(flags.get("monastery_chest_opened", false))
 		monastery_chapel_open = bool(flags.get("monastery_chapel_open", false))
 		monastery_right_seal = bool(flags.get("monastery_right_seal", false))
+		monastery_bell_solved = bool(flags.get("monastery_bell_solved", false))
 		monastery_candles_lit = int(flags.get("monastery_candles_lit", 0))
 		coast_lens_found = bool(flags.get("coast_lens_found", false))
 		coast_falcon_defeated = bool(flags.get("coast_falcon_defeated", false))
@@ -405,10 +454,28 @@ func apply_save_data(data: Dictionary) -> void:
 		coast_tide_key = bool(flags.get("coast_tide_key", false))
 		coast_lighthouse_guards_defeated = bool(flags.get("coast_lighthouse_guards_defeated", false))
 		coast_lighthouse_lit = bool(flags.get("coast_lighthouse_lit", false))
+		coast_mirror_cliff_guard = bool(flags.get("coast_mirror_cliff_guard", false))
+		coast_mirror_cave_guard = bool(flags.get("coast_mirror_cave_guard", false))
+		coast_mirror_wreck_guard = bool(flags.get("coast_mirror_wreck_guard", false))
+		coast_mirror_cliff = bool(flags.get("coast_mirror_cliff", false))
+		coast_mirror_cave = bool(flags.get("coast_mirror_cave", false))
+		coast_mirror_wreck = bool(flags.get("coast_mirror_wreck", false))
+		coast_beam_aligned = bool(flags.get("coast_beam_aligned", false))
 		coast_chest_opened = bool(flags.get("coast_chest_opened", false))
 		coast_vault_opened = bool(flags.get("coast_vault_opened", false))
 		ska_defeated = bool(flags.get("ska_defeated", false))
 		third_stele_lit = bool(flags.get("third_stele_lit", false))
+		# 兼容旧存档：旧版没有 bridge_repair_stage 字段，Boss 击败即视为点碑。
+		# 新流程必须由玩家手动点燃第一关石碑，不能因为 Boss 已死就自动点亮。
+		if boss_defeated and not flags.has("bridge_repair_stage"):
+			first_stele_lit = true
+		# 兼容旧存档：旧版没有 monastery_bell_solved 字段。
+		# 新流程第二关石碑必须由玩家手动点燃。
+		if roland_defeated and not flags.has("monastery_bell_solved"):
+			second_stele_lit = true
+		# 兼容旧存档：旧版没有 coast_beam_aligned 字段；新流程第三关石碑要玩家手动点燃。
+		if ska_defeated and not flags.has("coast_beam_aligned"):
+			third_stele_lit = true
 	var saved_hotbar = data.get("hotbar", [])
 	hotbar = ["", "", "", ""]
 	hotbar_counts = [0, 0, 0, 0]
@@ -459,6 +526,10 @@ func reset_state() -> void:
 	for slot in EQUIPMENT_SLOTS:
 		equipment[slot] = {"id": "", "count": 0}
 	bridge_repaired = false
+	bridge_repair_stage = 0
+	bridge_tracking_done = false
+	bridge_crate_west = false
+	bridge_crate_east = false
 	material_crafted = false
 	mask_crafted = false
 	mask_equipped = false
@@ -484,6 +555,7 @@ func reset_state() -> void:
 	monastery_chest_opened = false
 	monastery_chapel_open = false
 	monastery_right_seal = false
+	monastery_bell_solved = false
 	monastery_candles_lit = 0
 	coast_lens_found = false
 	coast_falcon_defeated = false
@@ -491,12 +563,21 @@ func reset_state() -> void:
 	coast_tide_key = false
 	coast_lighthouse_guards_defeated = false
 	coast_lighthouse_lit = false
+	coast_mirror_cliff_guard = false
+	coast_mirror_cave_guard = false
+	coast_mirror_wreck_guard = false
+	coast_mirror_cliff = false
+	coast_mirror_cave = false
+	coast_mirror_wreck = false
+	coast_beam_aligned = false
 	coast_chest_opened = false
 	coast_vault_opened = false
 	ska_defeated = false
 	third_stele_lit = false
 	prologue_scene_spawn = ""
 	prologue_travel = false
+	town_return_pending = false
+	pending_route_unlock = ""
 	inventory_changed.emit()
 
 func find_reachable_position(pos: Vector2, max_radius: float = 32.0) -> Vector2:

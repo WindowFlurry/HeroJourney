@@ -65,6 +65,7 @@ func on_scene_ready() -> void:
 		"gareth_house": Vector2(560, 240),
 		"blacksmith": Vector2(165, 390),
 		"east_gate": Vector2(660, 330),
+		"town": Vector2(620, 330),
 	})
 	player.set_spawn_position(Vector2(305, 255))
 	hud.profession_selected.connect(_on_profession_selected)
@@ -105,7 +106,6 @@ func build_village() -> void:
 	entries["notice"] = notice_position + Vector2(0, 10)
 	entry_prompts["notice"] = "查看村中告示"
 	add_world_label("灰杉村", Vector2(250, 305), 11, Color(1.0, 0.84, 0.5))
-	add_world_label("Tab 测试菜单", Vector2(250, 330), 6, Color(0.68, 0.63, 0.52))
 
 	# 村庄北侧的小高地：草地平台，从主路沿石阶正常走上去
 	_add_highland(Vector2(190, -260), 10, 6, 4, 2)
@@ -220,6 +220,10 @@ func _add_building(rect: Rect2, title: String, interaction_pos: Vector2, entry_i
 
 
 func refresh_objective() -> void:
+	if Global.guild_registered:
+		set_objective("返回白鹿镇")
+		set_tutorial("从村庄东侧的灰鹿古道返回白鹿镇")
+		return
 	if not Global.gareth_talked:
 		set_objective("前往加雷斯的屋子")
 		set_tutorial("沿村庄道路向东，进入加雷斯的屋子")

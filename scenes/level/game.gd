@@ -6,7 +6,30 @@ const LOG: Texture2D = preload("res://graphics/trees/white_birch/white_birch_log
 const FLOWER: Texture2D = preload("res://graphics/trees/white_birch/white_birch_flower.png")
 const FERN: Texture2D = preload("res://graphics/trees/white_birch/white_birch_fern.png")
 const SIGN: Texture2D = preload("res://graphics/trees/white_birch/white_birch_sign.png")
-const MONASTERY_GATE_SCENE: PackedScene = preload("res://scenes/level/monastery_gate.tscn")
+const TOWN_RETURN_GATE_SCRIPT: Script = preload("res://scenes/level/town_return_gate.gd")
+const TRACKING_QUEST_SCRIPT: Script = preload("res://scenes/level/tracking_quest.gd")
+const PICKUP_SCENE: PackedScene = preload("res://scenes/level/pickup_item.tscn")
+const MATERIAL_ICON: Texture2D = preload("res://graphics/items/material.png")
+const ENEMY_SCENE: PackedScene = preload("res://scenes/enemy/enemy.tscn")
+const MATERIAL_CACHES := [
+	{"pos": Vector2(-140, 900), "flag": "bridge_crate_west", "label": "西侧补给"},
+	{"pos": Vector2(500, 780), "flag": "bridge_crate_east", "label": "东侧补给"},
+]
+const EAST_RECT := Rect2(560, 470, 760, 720)
+const EAST_TREE_SPOTS := [
+	Vector2(650, 545), Vector2(770, 520), Vector2(900, 525), Vector2(1040, 545),
+	Vector2(1180, 570), Vector2(1290, 650), Vector2(660, 870), Vector2(800, 900),
+	Vector2(1280, 900), Vector2(700, 1100), Vector2(900, 1160), Vector2(1100, 1140),
+]
+const EAST_DETAIL_SPOTS := [
+	Vector2(720, 850), Vector2(1000, 650), Vector2(1240, 760), Vector2(760, 1000),
+]
+const EAST_ENEMY_SPOTS := [
+	{"pos": Vector2(740, 800), "type": 0, "tier": 1},
+	{"pos": Vector2(900, 650), "type": 1, "tier": 1},
+	{"pos": Vector2(1080, 900), "type": 0, "tier": 2},
+	{"pos": Vector2(1040, 1150), "type": 1, "tier": 2},
+]
 
 # A/B/C 常见，D/E 稀有；五种都会出现
 const BIRCH_STYLE_POOL := [0, 0, 0, 1, 1, 2, 2, 3, 4]
@@ -35,15 +58,164 @@ func _ready() -> void:
 	objects = get_node_or_null("Objects")
 	if objects == null:
 		return
-	var gate := MONASTERY_GATE_SCENE.instantiate() as Node2D
-	if gate != null:
-		gate.position = Vector2(230, 10)
-		objects.add_child(gate)
-	var end_gate := MONASTERY_GATE_SCENE.instantiate() as Node2D
-	if end_gate != null:
-		end_gate.position = Vector2(560, 1370)
-		objects.add_child(end_gate)
-	_build_white_birch_forest()
+	_build_return_gate()
+	_build_east_extension()
+	await _build_white_birch_forest()
+	if not is_inside_tree():
+		return
+	_build_level_quests()
+	SaveGame.save_game("白桦林地")
+
+
+func _build_return_gate() -> void:
+	var gate := Node2D.new()
+	gate.set_script(TOWN_RETURN_GATE_SCRIPT)
+	gate.position = Vector2(200, -60)
+	gate.set("label_text", "返回白鹿镇")
+	objects.add_child(gate)
+
+
+func _build_east_extension() -> void:
+	var layers := get_node_or_null("Layers")
+	if layers == null:
+		return
+	var water := layers.get_node_or_null("WaterWorld") as TileMapLayer
+	var land := layers.get_node_or_null("LandExtension") as TileMapLayer
+	if land == null or land.tile_set == null:
+		return
+
+	var start_cell := land.local_to_map(EAST_RECT.position)
+	var end_cell := land.local_to_map(EAST_RECT.position + EAST_RECT.size)
+
+	var east_land := TileMapLayer.new()
+	east_land.name = "EastLand"
+	east_land.tile_set = land.tile_set
+	east_land.z_index = 0
+	layers.add_child(east_land)
+
+	var cells: Array[Vector2i] = []
+	for y in range(start_cell.y, end_cell.y):
+		for x in range(start_cell.x, end_cell.x):
+			var cell := Vector2i(x, y)
+			if water != null:
+				water.erase_cell(cell)
+			cells.append(cell)
+	if not cells.is_empty():
+		east_land.set_cells_terrain_connect(cells, 0, 0, false)
+
+	_add_east_sign()
+	for spot in EAST_TREE_SPOTS:
+		var birch := WHITE_BIRCH_SCENE.instantiate() as Node2D
+		if birch == null:
+			continue
+		birch.set("style_index", int(BIRCH_STYLE_POOL[rng.randi_range(0, BIRCH_STYLE_POOL.size() - 1)]))
+		birch.set("scale_override", rng.randf_range(0.95, 1.08))
+		birch.position = spot
+		objects.add_child(birch)
+	for i in EAST_DETAIL_SPOTS.size():
+		var spot: Vector2 = EAST_DETAIL_SPOTS[i]
+		_add_sprite(STUMP if i % 2 == 0 else LOG, spot, 1.0, rng.randf() < 0.5)
+	for i in 10:
+		var detail := Vector2(rng.randf_range(600.0, 1280.0), rng.randf_range(520.0, 1160.0))
+		_add_sprite(FLOWER if i % 2 == 0 else FERN, detail, rng.randf_range(0.9, 1.1), rng.randf() < 0.5)
+	for entry in EAST_ENEMY_SPOTS:
+		_spawn_east_enemy(entry)
+
+func _add_east_sign() -> void:
+	var pos := Vector2(600, 640)
+	var sign_sprite := Sprite2D.new()
+	sign_sprite.texture = SIGN
+	sign_sprite.position = pos + Vector2(0, -15)
+	sign_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	sign_sprite.z_index = 1
+	objects.add_child(sign_sprite)
+	_add_cache_label("东侧林地", pos + Vector2(-55, -52))
+	_add_cache_label("伐木队营地", Vector2(1180, 1030))
+
+func _spawn_east_enemy(entry: Dictionary) -> void:
+	var enemy := ENEMY_SCENE.instantiate() as Node2D
+	if enemy == null:
+		return
+	var pos: Vector2 = entry["pos"]
+	enemy.set("enemy_type", int(entry["type"]))
+	enemy.set("region_tier", int(entry["tier"]))
+	enemy.set("health_multiplier", 1.15)
+	enemy.position = pos
+	objects.add_child(enemy)
+	enemy.global_position = pos
+
+
+func _build_level_quests() -> void:
+	if Global.bridge_repaired:
+		return
+	for entry in MATERIAL_CACHES:
+		var flag := str(entry["flag"])
+		if bool(Global.get(flag)):
+			continue
+		_spawn_material_cache(Vector2(entry["pos"]), flag, str(entry["label"]))
+
+	var tracking := Node2D.new()
+	tracking.name = "TrackingQuest"
+	tracking.set_script(TRACKING_QUEST_SCRIPT)
+	tracking.position = Vector2.ZERO
+	objects.add_child(tracking)
+
+
+func _spawn_material_cache(pos: Vector2, flag: String, label_text: String) -> void:
+	var cache_pos := _reachable(pos)
+	var pickup := PICKUP_SCENE.instantiate() as Node2D
+	if pickup == null:
+		return
+	pickup.set("flag_name", flag)
+	pickup.set("pickup_notice", "获得建材")
+	pickup.position = cache_pos
+	objects.add_child(pickup)
+	pickup.global_position = cache_pos
+	pickup.call("setup", "material", "建材", Color(0.95, 0.78, 0.35), MATERIAL_ICON)
+	_add_cache_label(label_text, cache_pos + Vector2(-55, -42))
+	_spawn_cache_guards(cache_pos)
+
+
+func _spawn_cache_guards(pos: Vector2) -> void:
+	var plans := [
+		{"type": 0, "offset": Vector2(-80, 10)},
+		{"type": 1, "offset": Vector2(80, 4)},
+	]
+	for plan in plans:
+		var enemy := ENEMY_SCENE.instantiate() as Node2D
+		if enemy == null:
+			continue
+		var offset: Vector2 = plan["offset"]
+		var enemy_pos := _reachable(pos + offset)
+		enemy.set("enemy_type", int(plan["type"]))
+		enemy.set("region_tier", 1)
+		enemy.set("health_multiplier", 1.0)
+		enemy.position = enemy_pos
+		objects.add_child(enemy)
+		enemy.global_position = enemy_pos
+
+
+func _reachable(point: Vector2) -> Vector2:
+	var pos := Global.find_reachable_position(point, 72.0)
+	return point if pos == Vector2.INF else pos
+
+
+func _add_cache_label(text: String, pos: Vector2) -> void:
+	var font := SystemFont.new()
+	font.font_names = PackedStringArray(["Microsoft YaHei", "KaiTi"])
+	var label := Label.new()
+	label.text = text
+	label.position = pos
+	label.size = Vector2(110, 14)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_override("font", font)
+	label.add_theme_font_size_override("font_size", 7)
+	label.add_theme_color_override("font_color", Color(0.95, 0.82, 0.5))
+	label.add_theme_color_override("font_outline_color", Color(0.03, 0.02, 0.01, 0.95))
+	label.add_theme_constant_override("outline_size", 2)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.z_index = 20
+	objects.add_child(label)
 
 
 func _build_white_birch_forest() -> void:

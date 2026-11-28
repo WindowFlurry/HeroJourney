@@ -103,6 +103,7 @@ var wander_pause: float
 var projectile_speed: float
 var base_tint: Color
 var health_multiplier := 1.0
+var drops_enabled := true
 
 var player: Node2D
 var spawn_position: Vector2
@@ -117,6 +118,7 @@ var retreat_direction := Vector2.ZERO
 var facing := Vector2.DOWN
 var dead := false
 var stuck_time := 0.0
+var chase_stuck_time := 0.0
 var last_position := Vector2.ZERO
 var windup_time := 0.0
 var windup_kind := ""
@@ -193,6 +195,17 @@ func _physics_process(delta: float) -> void:
 		return
 	if player == null:
 		player = get_tree().get_first_node_in_group("Player") as Node2D
+
+	# 安全区兜底：任何已经进入营地的怪都向外走，避免卡在营地里。
+	if _point_in_safe_zone(global_position, 2.0):
+		var zone := _nearest_safe_zone()
+		if zone != null:
+			var away: Vector2 = global_position - zone.global_position
+			if away.length() < 1.0:
+				away = Vector2.RIGHT
+			velocity = away.normalized() * maxf(move_speed, 80.0)
+			move_and_slide()
+			return
 
 	if attack_cooldown > 0.0:
 		attack_cooldown -= delta
@@ -504,7 +517,8 @@ func _die() -> void:
 		Sfx.play("enemy_death", float(TIER_PITCH[region_tier]) * 0.92, -6.0)
 	remove_from_group("Enemies")
 	$CollisionShape2D.set_deferred("disabled", true)
-	_spawn_drops()
+	if drops_enabled:
+		_spawn_drops()
 	died.emit()
 	Global.enemy_killed.emit()
 	var tween := create_tween()
@@ -597,14 +611,27 @@ func _keep_out_of_boss_island() -> void:
 func _check_stuck(delta: float) -> void:
 	if velocity.length() <= 1.0:
 		stuck_time = 0.0
+		chase_stuck_time = 0.0
 	elif global_position.distance_to(last_position) < 0.5:
 		stuck_time += delta
+		chase_stuck_time += delta
 		if stuck_time >= 1.0:
 			wander_target = _pick_wander_target()
 			stuck_time = 0.0
 	else:
 		stuck_time = 0.0
+		chase_stuck_time = 0.0
 	last_position = global_position
+
+	# 追击时被树/墙角卡住超过 2 秒：直接绕到玩家附近的可行走点，避免隔墙站桩。
+	if chase_stuck_time >= 2.0 and _has_aggro() and player != null and not _player_in_safe_zone():
+		var offset := Vector2.from_angle(randf() * TAU) * randf_range(80.0, 150.0)
+		var teleport_pos := Global.find_reachable_position(player.global_position + offset, 48.0)
+		if teleport_pos != Vector2.INF:
+			global_position = teleport_pos
+			last_position = teleport_pos
+			chase_stuck_time = 0.0
+			stuck_time = 0.0
 
 
 func _has_aggro() -> bool:
@@ -628,6 +655,20 @@ func _point_in_safe_zone(point: Vector2, margin: float = 0.0) -> bool:
 		if zone.has_method("contains_point") and bool(zone.call("contains_point", point, margin)):
 			return true
 	return false
+
+
+func _nearest_safe_zone() -> Node2D:
+	var best: Node2D = null
+	var best_distance := INF
+	for zone in get_tree().get_nodes_in_group("SafeZones"):
+		var node := zone as Node2D
+		if node == null:
+			continue
+		var distance := node.global_position.distance_squared_to(global_position)
+		if distance < best_distance:
+			best_distance = distance
+			best = node
+	return best
 
 
 func _cardinal(v: Vector2) -> Vector2:

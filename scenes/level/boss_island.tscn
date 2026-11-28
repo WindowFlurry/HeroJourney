@@ -113,3 +113,5 @@ flip_h = true
 
 [node name="OathStele" parent="." instance=ExtResource("5_stele")]
 position = Vector2(420, 1370)
+reveal_delay = 5.0
+reveal_notice = "誓火石碑显现"

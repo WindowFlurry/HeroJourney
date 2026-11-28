@@ -1027,6 +1027,7 @@ func revive_at_camp() -> void:
 	last_hit_from_boss = false
 	global_position = spawn_position
 	velocity = Vector2.ZERO
+	input_locked = false
 	invulnerable_timer = invulnerable_time
 	dead = false
 	health_changed.emit(health, max_health)

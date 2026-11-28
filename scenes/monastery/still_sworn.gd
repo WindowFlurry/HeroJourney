@@ -7,17 +7,17 @@ const WARNING_SQUARE: Texture2D = preload("res://graphics/boss/warning_square.pn
 const WARNING_LINE: Texture2D = preload("res://graphics/boss/warning_line.png")
 const CLAW_IMPACT: Texture2D = preload("res://graphics/boss/claw_impact.png")
 
-@export var max_health := 380
-@export var move_speed := 38.0
-@export var slash_damage := 16
-@export var charge_damage := 18
-@export var counter_damage := 12
+@export var max_health := 620
+@export var move_speed := 42.0
+@export var slash_damage := 18
+@export var charge_damage := 20
+@export var counter_damage := 13
 @export var slash_radius := 58.0
 @export var slam_cooldown := 4.4
 @export var charge_cooldown := 5.8
 @export var shield_cooldown_time := 7.5
 
-var health := 380
+var health := 620
 var active := false
 var dead := false
 var player: Node2D
@@ -44,12 +44,15 @@ var ui_panel: Panel
 var ui_bar: ProgressBar
 var ui_font: SystemFont
 var charge_target := Vector2.ZERO
+var strafe_dir := 1.0
+var strafe_timer := 0.0
 
 
 func _ready() -> void:
 	add_to_group("Enemies")
-	collision_layer = 4
-	collision_mask = 3
+	# 放到玩家碰撞掩码之外的层，玩家不会被 Boss 身体挡住；Boss 仍只和墙体碰撞。
+	collision_layer = 8
+	collision_mask = 1
 	start_position = global_position
 	player = get_tree().get_first_node_in_group("Player")
 	_build_visual()
@@ -163,6 +166,8 @@ func reset_fight() -> void:
 	recover_timer = 0.0
 	attack_cd = 1.0
 	shield_cd = 3.0
+	strafe_timer = 0.0
+	strafe_dir = 1.0
 	global_position = start_position
 	_clear_warnings()
 	ui_panel.visible = false
@@ -196,12 +201,23 @@ func _physics_process(delta: float) -> void:
 			if shielded:
 				velocity = Vector2.ZERO
 				_update_frame(2)
-			elif to_player.length() > 76.0:
-				velocity = to_player.normalized() * move_speed
-				_update_frame(1)
 			else:
-				velocity = Vector2.ZERO
-				_update_frame(0)
+				var idle_distance := to_player.length()
+				if idle_distance < 54.0:
+					# 离玩家太近时后撤，避免一直贴在玩家身上。
+					velocity = -to_player.normalized() * move_speed * 0.9
+					_update_frame(1)
+				elif idle_distance > 80.0:
+					velocity = to_player.normalized() * move_speed
+					_update_frame(1)
+				else:
+					# 中距离侧移绕圈，不站桩也不贴脸。
+					strafe_timer -= delta
+					if strafe_timer <= 0.0:
+						strafe_dir = 1.0 if randf() < 0.5 else -1.0
+						strafe_timer = randf_range(0.45, 0.85)
+					velocity = to_player.normalized().orthogonal() * strafe_dir * move_speed * 0.65
+					_update_frame(1)
 			if attack_cd <= 0.0:
 				_choose_attack(to_player.length())
 		"windup":
@@ -216,7 +232,12 @@ func _physics_process(delta: float) -> void:
 			if cast_timer <= 0.0:
 				_execute_skill()
 		"recover":
-			velocity = Vector2.ZERO
+			if to_player.length() < 58.0:
+				velocity = -to_player.normalized() * move_speed * 0.55
+				_update_frame(1)
+			else:
+				velocity = Vector2.ZERO
+				_update_frame(0)
 			recover_timer -= delta
 			if recover_timer <= 0.0:
 				state = "idle"

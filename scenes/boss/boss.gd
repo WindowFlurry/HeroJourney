@@ -18,12 +18,14 @@ const F_DEATH3 := 12
 
 const ORB_SCENE := preload("res://scenes/boss/orb.tscn")
 const SPIKE_SCENE := preload("res://scenes/boss/root_spike.tscn")
+const CUB_SCENE: PackedScene = preload("res://scenes/enemy/enemy.tscn")
 const WARNING_SQUARE := preload("res://graphics/boss/warning_square.png")
 const WARNING_LINE := preload("res://graphics/boss/warning_line.png")
 const CLAW_IMPACT := preload("res://graphics/boss/claw_impact.png")
 
 const COOLDOWN := {"claw": 4.5, "orb": 6.0, "root": 7.0, "slam": 8.5}
 const WINDUP := {"claw": 0.8, "orb": 1.0, "root": 0.7, "slam": 1.1}
+const SUMMON_THRESHOLDS := [0.72, 0.46, 0.20]
 
 @export var max_health := 420
 @export var move_speed := 22.0
@@ -71,6 +73,8 @@ var ui_panel: Panel
 var ui_bar: ProgressBar
 var ui_font: SystemFont
 var player_connected := false
+var summon_count := 0
+var reset_timer := 0.0
 
 
 func _ready() -> void:
@@ -97,13 +101,16 @@ func _player_on_island() -> bool:
 	if player == null:
 		return false
 	var p: Vector2 = player.global_position
-	return p.y > 1300.0 and p.x > 140.0 and p.x < 760.0
+	# 未激活时要求玩家真正越过雾墙；激活后保留一段缓冲带，避免贴边走路误判离场。
+	var min_y := 1276.0 if active else 1300.0
+	return p.y > min_y and p.x > 140.0 and p.x < 760.0
 
 
 func _activate() -> void:
 	if active or dead:
 		return
 	active = true
+	reset_timer = 0.0
 	state = "idle"
 	decision_timer = 1.2
 	_show_ui()
@@ -130,10 +137,13 @@ func _physics_process(delta: float) -> void:
 			_activate()
 		return
 
-	# 玩家离开岛屿（走回桥/主岛）：Boss 停手、退出战斗，血量回满等待再次进入
+	# 玩家离开岛屿（走回桥/主岛）：先给 1.2 秒缓冲，避免贴边误判；确认离开后才脱战回血。
 	if not _player_on_island():
-		_reset_fight()
+		reset_timer += delta
+		if reset_timer >= 1.2:
+			_reset_fight()
 		return
+	reset_timer = 0.0
 
 	for key in cooldowns.keys():
 		cooldowns[key] = maxf(0.0, cooldowns[key] - delta)
@@ -466,12 +476,91 @@ func take_damage(amount: int) -> void:
 	health = maxi(health - amount, 0)
 	_update_ui()
 	Global.spawn_damage_number(global_position + Vector2(randf_range(-10.0, 10.0), -108.0), amount)
+	if health > 0 and summon_count < SUMMON_THRESHOLDS.size():
+		var threshold := int(max_health * float(SUMMON_THRESHOLDS[summon_count]))
+		if health <= threshold:
+			summon_count += 1
+			_summon_cubs()
 	if health <= 0:
 		_die()
 		return
 	sprite.modulate = Color(1.0, 0.55, 0.55)
 	var t := create_tween()
 	t.tween_property(sprite, "modulate", Color.WHITE, 0.15)
+
+
+func _summon_cubs() -> void:
+	var objects := get_tree().current_scene.get_node_or_null("Objects")
+	if objects == null:
+		objects = get_parent()
+	var target := global_position + Vector2(0, -40)
+	if player != null:
+		target = player.global_position
+	var offsets: Array[Vector2] = [Vector2(-18, 0), Vector2(18, 0), Vector2(0, 20)]
+	for i in offsets.size():
+		var offset: Vector2 = offsets[i]
+		var landing := Vector2(
+			clampf(target.x + offset.x, 300.0, 640.0),
+			clampf(target.y + offset.y, 1320.0, 1460.0)
+		)
+		_throw_cub(objects, landing)
+	Sfx.play("danger", 0.7, 0.0)
+
+
+func _throw_cub(objects: Node, landing: Vector2) -> void:
+	var enemy := CUB_SCENE.instantiate() as Node2D
+	if enemy == null:
+		return
+	enemy.set("enemy_type", 0)
+	enemy.set("region_tier", 2)
+	enemy.set("health_multiplier", 0.6)
+	enemy.position = global_position + Vector2(0, -80)
+	objects.add_child(enemy)
+	enemy.global_position = global_position + Vector2(0, -80)
+	enemy.set("move_speed", 160.0)
+	enemy.set("damage", 12)
+	enemy.set("attack_interval", 0.8)
+	enemy.set("aggro_timer", 999.0)
+	enemy.set("drops_enabled", false)
+	enemy.add_to_group("BossSummons")
+	enemy.process_mode = Node.PROCESS_MODE_DISABLED
+	var shape := enemy.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if shape != null:
+		shape.set_deferred("disabled", true)
+
+	var warning := Sprite2D.new()
+	warning.texture = WARNING_SQUARE
+	warning.scale = Vector2(1.6, 1.6)
+	warning.modulate = Color(1.0, 0.35, 0.2, 0.75)
+	warning.z_index = 2
+	_ground_root().add_child(warning)
+	warning.global_position = landing
+	warning.add_to_group("BossEffects")
+
+	var sprite := enemy.get_node_or_null("Sprite2D") as Node2D
+	var t := create_tween()
+	t.tween_interval(0.45)
+	t.tween_property(enemy, "global_position", landing, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	if sprite != null:
+		t.parallel().tween_property(sprite, "rotation", TAU, 0.5)
+	t.chain().tween_callback(func() -> void:
+		if is_instance_valid(warning):
+			warning.queue_free()
+		if is_instance_valid(enemy):
+			enemy.process_mode = Node.PROCESS_MODE_INHERIT
+			var collider := enemy.get_node_or_null("CollisionShape2D") as CollisionShape2D
+			if collider != null:
+				collider.set_deferred("disabled", false)
+			if sprite != null and is_instance_valid(sprite):
+				sprite.rotation = 0.0
+			_spawn_impact(landing)
+	)
+
+
+func _clear_summons() -> void:
+	for node in get_tree().get_nodes_in_group("BossSummons"):
+		if is_instance_valid(node):
+			node.queue_free()
 
 
 func _die() -> void:
@@ -484,6 +573,7 @@ func _die() -> void:
 	remove_from_group("Enemies")
 	_clear_warnings()
 	_clear_effects()
+	_clear_summons()
 	_hide_ui()
 	velocity = Vector2.ZERO
 	health = 0
@@ -519,7 +609,12 @@ func _finish_death() -> void:
 	_hide_glows()
 	if arena_curtain != null and arena_curtain.has_method("lift"):
 		arena_curtain.call("lift")
-	# 胜利改由白桦林地的誓火石碑触发
+	var hud := get_tree().get_first_node_in_group("HUD")
+	if hud != null:
+		hud.call("show_banner", "裂牙格鲁姆倒下了", "岛上的誓火石碑显现了", 2.6)
+	var player := get_tree().get_first_node_in_group("Player")
+	if player != null and player.has_method("set_input_locked"):
+		player.call("set_input_locked", false)
 
 
 func _on_player_died() -> void:
@@ -536,8 +631,11 @@ func _reset_fight() -> void:
 	decision_timer = 1.0
 	pose_col = -1
 	pose_timer = 0.0
+	reset_timer = 0.0
+	summon_count = 0
 	_clear_warnings()
 	_clear_effects()
+	_clear_summons()
 	_hide_glows()
 	_hide_ui()
 	_update_ui()

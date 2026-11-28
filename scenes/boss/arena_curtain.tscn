@@ -4,7 +4,7 @@
 [ext_resource type="Script" path="res://scenes/boss/arena_curtain.gd" id="3_script"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_block"]
-size = Vector2(360, 18)
+size = Vector2(440, 18)
 
 [sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_mist"]
 emission_shape = 3
@@ -48,7 +48,7 @@ texture = ExtResource("2_particle")
 process_material = SubResource("ParticleProcessMaterial_mist")
 
 [node name="Blocker" type="StaticBody2D" parent="."]
-collision_layer = 8
+collision_layer = 1
 collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Blocker"]

@@ -49,6 +49,10 @@ func save_game(location: String) -> void:
 		"equipment": Global.equipment.duplicate(true),
 		"flags": {
 			"bridge_repaired": Global.bridge_repaired,
+			"bridge_repair_stage": Global.bridge_repair_stage,
+			"bridge_tracking_done": Global.bridge_tracking_done,
+			"bridge_crate_west": Global.bridge_crate_west,
+			"bridge_crate_east": Global.bridge_crate_east,
 			"material_crafted": Global.material_crafted,
 			"mask_crafted": Global.mask_crafted,
 			"mask_equipped": Global.mask_equipped,
@@ -74,6 +78,7 @@ func save_game(location: String) -> void:
 			"monastery_chest_opened": Global.monastery_chest_opened,
 			"monastery_chapel_open": Global.monastery_chapel_open,
 			"monastery_right_seal": Global.monastery_right_seal,
+			"monastery_bell_solved": Global.monastery_bell_solved,
 			"monastery_candles_lit": Global.monastery_candles_lit,
 			"coast_lens_found": Global.coast_lens_found,
 			"coast_falcon_defeated": Global.coast_falcon_defeated,
@@ -81,6 +86,13 @@ func save_game(location: String) -> void:
 			"coast_tide_key": Global.coast_tide_key,
 			"coast_lighthouse_guards_defeated": Global.coast_lighthouse_guards_defeated,
 			"coast_lighthouse_lit": Global.coast_lighthouse_lit,
+			"coast_mirror_cliff_guard": Global.coast_mirror_cliff_guard,
+			"coast_mirror_cave_guard": Global.coast_mirror_cave_guard,
+			"coast_mirror_wreck_guard": Global.coast_mirror_wreck_guard,
+			"coast_mirror_cliff": Global.coast_mirror_cliff,
+			"coast_mirror_cave": Global.coast_mirror_cave,
+			"coast_mirror_wreck": Global.coast_mirror_wreck,
+			"coast_beam_aligned": Global.coast_beam_aligned,
 			"coast_chest_opened": Global.coast_chest_opened,
 			"coast_vault_opened": Global.coast_vault_opened,
 			"ska_defeated": Global.ska_defeated,
@@ -110,6 +122,9 @@ func load_into_global() -> bool:
 		return false
 	Global.apply_save_data(data)
 	Global.prologue_travel = false
+	Global.prologue_scene_spawn = ""
+	Global.town_return_pending = false
+	Global.pending_route_unlock = ""
 	pending_player_data = data.get("player", {})
 	pending_scene_path = str(data.get("scene", "res://scenes/prologue/grayfir_village.tscn"))
 	if pending_scene_path.is_empty() or not ResourceLoader.exists(pending_scene_path):

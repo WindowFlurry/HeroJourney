@@ -5,7 +5,7 @@
 [ext_resource type="PackedScene" path="res://scenes/level/second_camp_floor.tscn" id="6_floor"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_0tkyl"]
-size = Vector2(144, 112)
+size = Vector2(176, 144)
 
 [node name="SecondSafeHouse" type="Node2D" unique_id=1277138658]
 

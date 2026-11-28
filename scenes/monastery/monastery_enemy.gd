@@ -3,6 +3,7 @@ extends CharacterBody2D
 signal died
 
 const PROJECTILE_SCENE: PackedScene = preload("res://scenes/prologue/prologue_projectile.tscn")
+const ENEMY_DROPS: Script = preload("res://scenes/level/enemy_drops.gd")
 const SHEETS := {
 	"mourner": preload("res://graphics/enemies/monastery/mourner_sheet.png"),
 	"bone_gleaner": preload("res://graphics/enemies/monastery/bone_gleaner_sheet.png"),
@@ -368,6 +369,8 @@ func _die() -> void:
 	remove_from_group("Enemies")
 	if body_shape != null:
 		body_shape.set_deferred("disabled", true)
+	ENEMY_DROPS.spawn(get_parent(), global_position, 1, enemy_kind == "ember_crown")
+	Global.enemy_killed.emit()
 	died.emit()
 	Sfx.play("enemy_death", 0.95, -8.0)
 	var tween := create_tween()

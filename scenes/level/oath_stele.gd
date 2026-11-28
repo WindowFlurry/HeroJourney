@@ -5,7 +5,7 @@ const GLOW: Texture2D = preload("res://graphics/fx/glow_white.png")
 @export var reveal_flag := "boss_defeated"
 @export var lit_flag := "first_stele_lit"
 @export var reveal_notice := "裂牙格鲁姆倒下了，誓火石碑显现"
-@export var lit_notice := "誓火石碑已点燃，白桦林地得到净化；石碑旁出现了通往失誓修道院的门"
+@export var lit_notice := "誓火石碑已点燃，白桦林地得到净化"
 @export var victory_title := "第一关完成"
 @export var victory_location := "白桦林地"
 @export var reveal_delay := 5.0
@@ -93,6 +93,13 @@ func _light() -> void:
 	if bool(Global.get(lit_flag)):
 		return
 	Global.set(lit_flag, true)
+	match lit_flag:
+		"first_stele_lit":
+			Global.pending_route_unlock = "monastery"
+		"second_stele_lit":
+			Global.pending_route_unlock = "coast"
+		"third_stele_lit":
+			Global.pending_route_unlock = "third"
 	SaveGame.save_game(victory_location)
 	_set_lit_visual()
 	if hud != null:
@@ -102,9 +109,8 @@ func _light() -> void:
 	await get_tree().create_timer(1.2).timeout
 	if not is_inside_tree():
 		return
-	var victory = get_tree().get_first_node_in_group("VictoryScreen")
-	if victory != null:
-		victory.call("show_victory", victory_title, victory_location)
+	# 不再显示“通关成功”弹窗；点碑后直接回到白鹿镇公会。
+	Global.return_to_white_deer_town()
 
 
 func _set_lit_visual() -> void:

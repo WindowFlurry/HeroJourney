@@ -46,6 +46,13 @@ var _quick_selected := -1
 var objective_panel: Panel
 var objective_label: Label
 var area_label: Label
+var banner_label: Label
+var banner_subtitle: Label
+var _banner_tween: Tween
+var channel_root: Control
+var channel_panel: Panel
+var channel_fill: ColorRect
+var channel_label: Label
 var _area_name := ""
 var _area_tween: Tween
 var inv_compact: Panel
@@ -102,6 +109,7 @@ func _ready() -> void:
 
 	ui_font = SystemFont.new()
 	ui_font.font_names = PackedStringArray(["Microsoft YaHei", "KaiTi"])
+	_build_banner()
 	_build_objective()
 	_build_area_label()
 	_build_inventory()
@@ -111,6 +119,7 @@ func _ready() -> void:
 	_build_quickbar()
 	_build_character_ui()
 	_build_heal_hint()
+	_build_channel_bar()
 	_update_inventory()
 	_refresh_objective()
 	_refresh_stats()
@@ -152,6 +161,31 @@ func _make_label(text: String, size: int, color: Color) -> Label:
 	label.add_theme_constant_override("outline_size", 2)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label
+
+
+func _build_banner() -> void:
+	banner_label = _make_label("", 20, Color(1.0, 0.76, 0.4))
+	banner_label.anchor_left = 0.0
+	banner_label.anchor_right = 1.0
+	banner_label.anchor_top = 0.32
+	banner_label.anchor_bottom = 0.32
+	banner_label.offset_top = -18.0
+	banner_label.offset_bottom = 18.0
+	banner_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	banner_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	banner_label.add_theme_constant_override("outline_size", 4)
+	banner_label.visible = false
+	add_child(banner_label)
+	banner_subtitle = _make_label("", 8, Color(0.96, 0.88, 0.72))
+	banner_subtitle.anchor_left = 0.0
+	banner_subtitle.anchor_right = 1.0
+	banner_subtitle.anchor_top = 0.43
+	banner_subtitle.anchor_bottom = 0.43
+	banner_subtitle.offset_top = -9.0
+	banner_subtitle.offset_bottom = 9.0
+	banner_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	banner_subtitle.visible = false
+	add_child(banner_subtitle)
 
 
 func _build_objective() -> void:
@@ -653,9 +687,19 @@ func _compute_objective() -> String:
 		if Global.mask_crafted or int(Global.inventory.get("mask", 0)) > 0:
 			return "戴上灰烬护符，穿过龙焰烟尘"
 		return "制作灰烬护符"
-	if int(Global.inventory.get("material", 0)) > 0:
-		return "到前哨木桥按 F 修复木桥"
-	return "收集建材，修复前哨木桥"
+	var stage := int(Global.bridge_repair_stage)
+	var materials := int(Global.inventory.get("material", 0))
+	if materials >= 3:
+		return "建材已集齐：尽快赶往断桥抢修"
+	if stage > 0:
+		if materials <= 0:
+			return "寻找建材，继续抢修前哨木桥（已完成 %d/3）" % stage
+		return "继续抢修前哨木桥（已完成 %d/3，可再修 %d 段）" % [stage, mini(materials, 3 - stage)]
+	if materials > 0:
+		return "已有建材 %d 份：到前哨木桥抢修第 1 段" % materials
+	if Global.bridge_tracking_done:
+		return "收集剩余建材（0/3）"
+	return "收集建材，追踪伐木队留下的血迹"
 
 
 func _refresh_stats() -> void:
@@ -726,6 +770,61 @@ func _build_heal_hint() -> void:
 	heal_root.add_child(heal_text_label)
 
 
+func _build_channel_bar() -> void:
+	channel_root = Control.new()
+	channel_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	channel_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	channel_root.visible = false
+	add_child(channel_root)
+
+	channel_label = _make_label("", 9, Color(1.0, 0.9, 0.66))
+	channel_label.anchor_left = 0.5
+	channel_label.anchor_right = 0.5
+	channel_label.anchor_top = 1.0
+	channel_label.anchor_bottom = 1.0
+	channel_label.offset_left = -130.0
+	channel_label.offset_right = 130.0
+	channel_label.offset_top = -140.0
+	channel_label.offset_bottom = -122.0
+	channel_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	channel_root.add_child(channel_label)
+
+	channel_panel = Panel.new()
+	channel_panel.anchor_left = 0.5
+	channel_panel.anchor_right = 0.5
+	channel_panel.anchor_top = 1.0
+	channel_panel.anchor_bottom = 1.0
+	channel_panel.offset_left = -88.0
+	channel_panel.offset_right = 88.0
+	channel_panel.offset_top = -118.0
+	channel_panel.offset_bottom = -105.0
+	channel_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	channel_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.05, 0.04, 0.03, 0.92), Color(0.72, 0.55, 0.28, 0.9), 2))
+	channel_root.add_child(channel_panel)
+
+	channel_fill = ColorRect.new()
+	channel_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	channel_fill.position = Vector2(2.0, 2.0)
+	channel_fill.size = Vector2(172.0, 9.0)
+	channel_fill.color = Color(0.9, 0.68, 0.28, 1.0)
+	channel_panel.add_child(channel_fill)
+
+
+func show_channel(progress: float, text: String) -> void:
+	if channel_root == null:
+		return
+	channel_root.visible = true
+	channel_label.text = text
+	var p := clampf(progress, 0.0, 1.0)
+	channel_fill.size = Vector2(172.0 * p, 9.0)
+	channel_fill.visible = p > 0.001
+
+
+func hide_channel() -> void:
+	if channel_root != null:
+		channel_root.visible = false
+
+
 func _refresh_heal_hint() -> void:
 	if player == null or heal_root == null:
 		return
@@ -783,6 +882,7 @@ func _on_revive_pressed() -> void:
 	death_panel.visible = false
 	if player:
 		player.call("revive_at_camp")
+		player.call("set_input_locked", false)
 
 
 func show_hint(text: String) -> void:
@@ -798,6 +898,28 @@ func show_notice(text: String) -> void:
 	notice_label.text = text
 	notice_label.visible = true
 	notice_timer.start()
+
+
+func show_banner(title: String, subtitle: String = "", duration: float = 2.4) -> void:
+	banner_label.text = title
+	banner_subtitle.text = subtitle
+	banner_label.visible = true
+	banner_subtitle.visible = not subtitle.is_empty()
+	banner_label.modulate.a = 0.0
+	banner_subtitle.modulate.a = 0.0
+	if _banner_tween != null and _banner_tween.is_valid():
+		_banner_tween.kill()
+	_banner_tween = create_tween()
+	_banner_tween.set_parallel(true)
+	_banner_tween.tween_property(banner_label, "modulate:a", 1.0, 0.35)
+	_banner_tween.tween_property(banner_subtitle, "modulate:a", 1.0, 0.35)
+	_banner_tween.chain().tween_interval(duration)
+	_banner_tween.chain().tween_property(banner_label, "modulate:a", 0.0, 0.45)
+	_banner_tween.parallel().tween_property(banner_subtitle, "modulate:a", 0.0, 0.45)
+	_banner_tween.chain().tween_callback(func() -> void:
+		banner_label.visible = false
+		banner_subtitle.visible = false
+	)
 
 
 func _on_notice_timer_timeout() -> void:

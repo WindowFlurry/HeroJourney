@@ -10,7 +10,6 @@
 [ext_resource type="Script" path="res://scenes/level/safe_zone.gd" id="10_safezone"]
 [ext_resource type="Script" path="res://scenes/level/hud.gd" id="11_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/pause_menu.tscn" id="50_pause"]
-[ext_resource type="PackedScene" path="res://scenes/ui/victory_screen.tscn" id="55_victory"]
 [ext_resource type="Script" path="res://scenes/level/spawn_manager.gd" id="12_spawn"]
 [ext_resource type="PackedScene" path="res://scenes/level/mountains.tscn" id="13_mountains"]
 [ext_resource type="PackedScene" path="res://scenes/level/water_world.tscn" id="14_water_world"]
@@ -1554,5 +1553,3 @@ script = ExtResource("40_debug")
 
 
 [node name="PauseMenu" parent="." instance=ExtResource("50_pause")]
-
-[node name="VictoryScreen" parent="." instance=ExtResource("55_victory")]

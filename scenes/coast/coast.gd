@@ -65,6 +65,8 @@ const ENEMY_SCENE: PackedScene = preload("res://scenes/coast/coast_enemy.tscn")
 const BOSS_SCENE: PackedScene = preload("res://scenes/coast/ska.tscn")
 const STELE_SCENE: PackedScene = preload("res://scenes/level/oath_stele.tscn")
 const FENCE_GATE_SCENE: PackedScene = preload("res://scenes/coast/fence_gate.tscn")
+const RETURN_GATE_SCRIPT: Script = preload("res://scenes/level/town_return_gate.gd")
+const MIRROR_SCRIPT: Script = preload("res://scenes/coast/beam_mirror.gd")
 
 const TILE_CHOICES: Array[Vector2i] = [
 	Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0), Vector2i(3, 0),
@@ -76,6 +78,7 @@ const NAV_MIN := Vector2(64, 48)
 const NAV_MAX := Vector2(2336, 1776)
 
 const ENTRANCE := Vector2(240, 1500)
+const RETURN_POS := Vector2(130, 1500)
 const CHECKPOINT := Vector2(780, 860)
 const PILGRIM_POS := Vector2(300, 1450)
 const WATCH_LOG_POS := Vector2(1200, 340)
@@ -111,6 +114,66 @@ const BOSS_TIDE_RECTS: Array[Rect2] = [
 	Rect2(1850, 400, 360, 100),
 	Rect2(1850, 900, 360, 100),
 ]
+const MIRROR_DATA := [
+	{
+		"id": "cliff",
+		"pos": Vector2(1150, 260),
+		"target": Vector2(1150, 120),
+		"target_facing": 3,
+		"initial": 0,
+		"label": "崖顶铜镜",
+		"marker": "崖顶标记",
+		"guard": "menhir_golem",
+		"guard_pos": Vector2(1150, 330),
+		"adds": [
+			["dragonfire_digger", Vector2(1070, 300)], ["dragonfire_digger", Vector2(1230, 300)],
+			["ash_feather", Vector2(1070, 220)], ["ash_feather", Vector2(1230, 220)],
+		],
+		"leash": Rect2(1010, 140, 280, 280),
+		"alarm_offsets": [Vector2(-80, 70), Vector2(80, 70), Vector2(0, 90)],
+		"flag": "coast_mirror_cliff",
+		"guard_flag": "coast_mirror_cliff_guard",
+	},
+	{
+		"id": "cave",
+		"pos": Vector2(360, 580),
+		"target": Vector2(520, 580),
+		"target_facing": 0,
+		"initial": 1,
+		"label": "海蚀洞铜镜",
+		"marker": "海蚀洞标记",
+		"guard": "menhir_golem",
+		"guard_pos": Vector2(440, 560),
+		"adds": [
+			["ash_feather", Vector2(290, 610)], ["ash_feather", Vector2(470, 610)],
+			["slag_skink", Vector2(300, 540)], ["slag_skink", Vector2(500, 540)],
+		],
+		"leash": Rect2(240, 400, 300, 280),
+		"alarm_offsets": [Vector2(-70, 60), Vector2(70, 60), Vector2(0, -70)],
+		"flag": "coast_mirror_cave",
+		"guard_flag": "coast_mirror_cave_guard",
+	},
+	{
+		"id": "wreck",
+		"pos": Vector2(1035, 1230),
+		"target": Vector2(1200, 1230),
+		"target_facing": 0,
+		"initial": 1,
+		"label": "沉船桅杆铜镜",
+		"marker": "龙骨山标记",
+		"guard": "cinder_falcon",
+		"guard_pos": Vector2(1120, 1230),
+		"adds": [
+			["gamehound", Vector2(980, 1230)], ["gamehound", Vector2(1200, 1230)],
+			["ash_feather", Vector2(940, 1240)], ["ash_feather", Vector2(1180, 1240)],
+		],
+		"leash": Rect2(900, 1200, 320, 120),
+		"alarm_offsets": [Vector2(-100, 0), Vector2(100, 0), Vector2(160, 0)],
+		"flag": "coast_mirror_wreck",
+		"guard_flag": "coast_mirror_wreck_guard",
+	},
+]
+const MIRROR_ALARM_KINDS := ["slag_skink", "slag_skink", "ash_feather"]
 
 var boss
 var boss_started := false
@@ -153,6 +216,10 @@ var cave_chest_sprite: Sprite2D
 var cave_chest_label: Label
 var vault_chest_sprite: Sprite2D
 var vault_chest_label: Label
+var mirrors := {}
+var mirror_markers := {}
+var mirror_alarm_ready := {}
+var cave_tide_blocker: CollisionShape2D
 
 
 func on_scene_ready() -> void:
@@ -166,9 +233,12 @@ func on_scene_ready() -> void:
 	checkpoint_pos = player.global_position
 	_build_tide_ui()
 	_build_quest_ui()
+	_refresh_tide_passages()
 	_apply_progress_visuals()
+	_build_return_gate()
 	hud.call("show_banner", "赤烬海岸", "赤潮与灰烬的边境", 2.8)
 	refresh_objective()
+	SaveGame.save_game("赤烬海岸")
 	if Global.third_stele_lit:
 		objective_done = true
 	# 多等一帧，确保潮门等后添加的静态碰撞体已经进入物理空间
@@ -176,6 +246,7 @@ func on_scene_ready() -> void:
 	await get_tree().physics_frame
 	_build_nav_grid()
 	_build_enemies()
+	_build_mirrors()
 	_build_boss()
 	_build_stele()
 	_update_quest_ui()
@@ -195,7 +266,10 @@ func refresh_objective() -> void:
 		else:
 			set_tutorial("攻击头部伤害更高，躲开冲锋与火焰吐息")
 	elif Global.coast_lighthouse_lit:
-		if not Global.coast_tide_key:
+		if not Global.coast_beam_aligned:
+			set_objective("校准三面灯塔铜镜")
+			set_tutorial("崖顶、海蚀洞、沉船桅杆各有一面铜镜 · 先击败守卫")
+		elif not Global.coast_tide_key:
 			set_objective("取得潮门钥匙")
 			set_tutorial("击败高台上的熔岩蛇蜥，夺取潮门钥匙")
 		else:
@@ -262,6 +336,19 @@ func build_coast() -> void:
 	_wall(Rect2(220, 680, 150, 20))
 	_wall(Rect2(410, 680, 150, 20))
 	_floor(Rect2(370, 680, 40, 20), BONE_FLOOR, 807)
+	# 海蚀洞入口在涨潮时被海水封住，只有低潮可以进出。
+	var cave_body := StaticBody2D.new()
+	cave_body.collision_layer = 1
+	cave_body.collision_mask = 0
+	var cave_shape := CollisionShape2D.new()
+	var cave_rect := RectangleShape2D.new()
+	cave_rect.size = Vector2(40, 22)
+	cave_shape.shape = cave_rect
+	cave_shape.position = Vector2(390, 689)
+	cave_shape.disabled = true
+	cave_body.add_child(cave_shape)
+	objects.add_child(cave_body)
+	cave_tide_blocker = cave_shape
 
 	# 沉船宝库（可选支路，仍留在海岸地图内）
 	_floor_z(Rect2(1530, 1300, 160, 140), WOOD, 810, 3)
@@ -327,6 +414,15 @@ func _glow(pos: Vector2, color: Color, glow_scale: float = 2.0) -> void:
 	sprite.modulate = color
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	sprite.z_index = 2
+
+
+func _build_return_gate() -> void:
+	var gate_node := Node2D.new()
+	gate_node.set_script(RETURN_GATE_SCRIPT)
+	gate_node.position = RETURN_POS
+	gate_node.set("label_text", "返回白鹿镇")
+	gate_node.set("interactive", false)
+	objects.add_child(gate_node)
 
 
 func _build_gate() -> void:
@@ -458,7 +554,7 @@ func _build_props() -> void:
 	_prop(BONE_PILE, Vector2(300, 620), 1.0)
 	_prop(WHALE_BONES, Vector2(400, 430), 0.8)
 	add_blocker(Rect2(336, 420, 128, 12))
-	add_world_label("海蚀洞", Vector2(290, 715), 8, Color(0.84, 0.8, 0.68))
+	add_world_label("海蚀洞 · 低潮可进入", Vector2(255, 715), 7, Color(0.84, 0.8, 0.68))
 	cave_chest_sprite = _prop(CHEST, CAVE_CHEST_POS, 1.6)
 	cave_chest_label = add_world_label("海蚀洞宝箱", CAVE_CHEST_POS + Vector2(-55, -40), 7, Color(0.92, 0.82, 0.56))
 	_glow(Vector2(370, 640), Color(1.0, 0.55, 0.2, 0.16), 2.0)
@@ -618,9 +714,9 @@ func _apply_progress_visuals() -> void:
 		vault_chest_label.visible = false
 		vault_chest_sprite = null
 	if Global.coast_lighthouse_lit:
-		_set_beam(true)
+		_refresh_beam_visual()
 		lighthouse_glow.modulate.a = 0.8
-	if (Global.coast_lighthouse_lit and Global.coast_tide_key) or Global.ska_defeated:
+	if (Global.coast_lighthouse_lit and Global.coast_beam_aligned and Global.coast_tide_key) or Global.ska_defeated:
 		_set_gate(true)
 
 
@@ -702,21 +798,23 @@ func _build_enemies() -> void:
 		["ash_feather", Vector2(1120, 260)],
 		["slag_skink", Vector2(820, 320)],
 		["lava_span_basilisk", Vector2(1450, 920)],
-		["menhir_golem", Vector2(440, 560)],
 	]:
 		_spawn_enemy(str(entry[0]), entry[1])
 
 
-func _spawn_enemy(kind: String, pos: Vector2) -> void:
+func _spawn_enemy(kind: String, pos: Vector2) -> Node2D:
 	if kind == "lava_span_basilisk" and (Global.coast_tide_key or Global.coast_tide_guardian_defeated):
-		return
+		return null
 	var enemy := ENEMY_SCENE.instantiate() as Node2D
+	if enemy == null:
+		return null
 	enemy.call("configure", kind)
 	enemy.position = pos
 	objects.add_child(enemy)
 	if kind == "lava_span_basilisk":
 		enemy.call("set_leash_rect", Rect2(1360, 900, 180, 100))
 		enemy.connect("died", _on_tide_guardian_died)
+	return enemy
 
 
 func _on_tide_guardian_died() -> void:
@@ -748,11 +846,172 @@ func _pick_tide_key() -> void:
 func _try_open_tide_gate() -> void:
 	if Global.ska_defeated or tide_gate_open:
 		return
-	if Global.coast_lighthouse_lit and Global.coast_tide_key:
+	if Global.coast_lighthouse_lit and Global.coast_beam_aligned and Global.coast_tide_key:
 		_set_gate(true)
 		hud.call("show_notice", "灯塔光束与潮门钥匙齐备，潮门开启")
 		refresh_objective()
 		Sfx.play("craft", 1.0, 1.5)
+
+
+func _mirror_data(id: String) -> Dictionary:
+	for data in MIRROR_DATA:
+		if str(data["id"]) == id:
+			return data
+	return {}
+
+
+func _build_mirrors() -> void:
+	for data in MIRROR_DATA:
+		var id := str(data["id"])
+		var data_pos: Vector2 = data["pos"]
+		var mirror := Node2D.new()
+		mirror.set_script(MIRROR_SCRIPT)
+		mirror.position = data_pos
+		mirror.z_index = 3
+		mirror.set("facing", int(data["initial"]))
+		objects.add_child(mirror)
+		mirrors[id] = mirror
+		var aligned := bool(Global.get(str(data["flag"])))
+		if aligned:
+			mirror.call("set_facing", int(data["target_facing"]))
+		mirror.call("set_aligned", aligned)
+
+		var target: Vector2 = data["target"]
+		var marker := add_sprite(GLOW, target + Vector2(0, -20), 1.8)
+		marker.modulate = Color(1.0, 0.82, 0.38, 0.6) if aligned else Color(0.45, 0.75, 0.85, 0.3)
+		marker.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		marker.z_index = 2
+		mirror_markers[id] = marker
+		add_world_label(str(data["marker"]), target + Vector2(-50, -50), 7, Color(0.76, 0.86, 0.94))
+		add_world_label(str(data["label"]), data_pos + Vector2(-55, 16), 7, Color(0.88, 0.78, 0.58))
+		mirror_alarm_ready[id] = 0
+
+		if not aligned and not bool(Global.get(str(data["guard_flag"]))):
+			_spawn_mirror_guard(data)
+
+
+func _spawn_mirror_guard(data: Dictionary) -> void:
+	var id := str(data["id"])
+	var guard_pos: Vector2 = data["guard_pos"]
+	var guard := _spawn_enemy(str(data["guard"]), guard_pos)
+	if guard != null:
+		guard.call("set_leash_rect", data["leash"])
+		guard.connect("died", _on_mirror_guard_died.bind(id))
+	for entry in data["adds"]:
+		var add_pos: Vector2 = entry[1]
+		_spawn_enemy(str(entry[0]), add_pos)
+
+
+func _on_mirror_guard_died(id: String) -> void:
+	var data := _mirror_data(id)
+	if data.is_empty():
+		return
+	var flag := str(data["guard_flag"])
+	if bool(Global.get(flag)):
+		return
+	Global.set(flag, true)
+	SaveGame.save_game("赤烬海岸")
+	hud.call("show_notice", "%s的守卫倒下了，可以转动铜镜" % str(data["label"]))
+	refresh_objective()
+	_update_quest_ui()
+	Sfx.play("craft", 1.0, 1.5)
+
+
+func _rotate_mirror(id: String) -> void:
+	var data := _mirror_data(id)
+	if data.is_empty() or bool(Global.get(str(data["flag"]))):
+		return
+	if not bool(Global.get(str(data["guard_flag"]))):
+		hud.call("show_notice", "先击败铜镜守卫")
+		return
+	var mirror = mirrors.get(id)
+	if mirror == null or not is_instance_valid(mirror):
+		return
+	var facing := (int(mirror.get("facing")) + 1) % 4
+	mirror.call("set_facing", facing)
+	Sfx.play("warn", 0.9, -8.0)
+	if facing == int(data["target_facing"]):
+		mirror.call("set_aligned", true)
+		Global.set(str(data["flag"]), true)
+		SaveGame.save_game("赤烬海岸")
+		var marker = mirror_markers.get(id)
+		if marker != null and is_instance_valid(marker):
+			marker.modulate = Color(1.0, 0.82, 0.38, 0.7)
+		hud.call("show_notice", "铜镜对准了%s（%d/3）" % [str(data["marker"]), _aligned_mirror_count()])
+		refresh_objective()
+		_update_quest_ui()
+		_check_beam()
+		Sfx.play("craft", 1.0, 1.5)
+		return
+
+	var now := Time.get_ticks_msec()
+	if now >= int(mirror_alarm_ready.get(id, 0)):
+		mirror_alarm_ready[id] = now + 6000
+		_spawn_mirror_alarm(id)
+		hud.call("show_notice", "铜镜方向错误，惊动了海兽")
+	else:
+		hud.call("show_notice", "铜镜方向不对，继续转动")
+
+
+func _spawn_mirror_alarm(id: String) -> void:
+	var data := _mirror_data(id)
+	if data.is_empty():
+		return
+	var base: Vector2 = data["pos"]
+	var offsets: Array = data.get("alarm_offsets", [Vector2(-70, 60), Vector2(70, 60), Vector2(0, 80)])
+	for i in MIRROR_ALARM_KINDS.size():
+		var offset: Vector2 = offsets[i % offsets.size()]
+		var pos := Global.find_reachable_position(base + offset, 48.0)
+		if pos == Vector2.INF:
+			continue
+		var enemy := _spawn_enemy(str(MIRROR_ALARM_KINDS[i]), pos)
+		if enemy != null:
+			enemy.set("awake", true)
+
+
+func _aligned_mirror_count() -> int:
+	var count := 0
+	for data in MIRROR_DATA:
+		if bool(Global.get(str(data["flag"]))):
+			count += 1
+	return count
+
+
+func _check_beam() -> void:
+	if _aligned_mirror_count() < MIRROR_DATA.size():
+		refresh_objective()
+		_update_quest_ui()
+		return
+	if Global.coast_beam_aligned:
+		return
+	Global.coast_beam_aligned = true
+	SaveGame.save_game("赤烬海岸")
+	_refresh_beam_visual()
+	hud.call("show_banner", "灯塔光束贯通", "三面铜镜已对准，潮门可以开启了", 2.8)
+	refresh_objective()
+	_update_quest_ui()
+	_try_open_tide_gate()
+
+
+func _refresh_beam_visual() -> void:
+	if not Global.coast_lighthouse_lit:
+		_set_beam(false)
+		return
+	_set_beam(true)
+	var aligned := Global.coast_beam_aligned
+	if beam != null:
+		beam.width = 9.0 if aligned else 5.0
+		beam.default_color = Color(1.0, 0.76, 0.34, 0.32) if aligned else Color(0.5, 0.75, 0.9, 0.14)
+		var core = beam.get_meta("core", null)
+		if core != null and is_instance_valid(core):
+			core.width = 3.0 if aligned else 1.5
+			core.default_color = Color(1.0, 0.9, 0.55, 0.85) if aligned else Color(0.55, 0.8, 1.0, 0.4)
+
+
+func _refresh_tide_passages() -> void:
+	if cave_tide_blocker == null:
+		return
+	cave_tide_blocker.set_deferred("disabled", tide_state == "low")
 
 
 func _build_boss() -> void:
@@ -769,11 +1028,11 @@ func _build_stele() -> void:
 	stele = STELE_SCENE.instantiate() as Node2D
 	stele.set("reveal_flag", "ska_defeated")
 	stele.set("lit_flag", "third_stele_lit")
-	stele.set("reveal_notice", "赤烬龙裔斯卡倒下了，第三座誓火石碑显现")
+	stele.set("reveal_notice", "誓火石碑显现")
 	stele.set("lit_notice", "第三座誓火石碑已点燃，赤烬海岸得到净化；龙骨山的方向传来龙吼")
 	stele.set("victory_title", "第三关完成")
 	stele.set("victory_location", "赤烬海岸")
-	stele.set("reveal_delay", 1.0)
+	stele.set("reveal_delay", 2.0)
 	stele.position = STELE_POS
 	stele.scale = Vector2(1.5, 1.5)
 	stele.z_index = 5
@@ -891,7 +1150,7 @@ func _build_quest_ui() -> void:
 	layer.add_child(root)
 	quest_panel = Panel.new()
 	quest_panel.position = Vector2(8, 38)
-	quest_panel.size = Vector2(126, 108)
+	quest_panel.size = Vector2(126, 120)
 	quest_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.05, 0.04, 0.035, 0.9)
@@ -913,7 +1172,7 @@ func _build_quest_ui() -> void:
 	quest_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	quest_panel.add_child(quest_title)
 	quest_lines.clear()
-	for i in 5:
+	for i in 6:
 		var line := Label.new()
 		line.position = Vector2(6, 16 + i * 12)
 		line.size = Vector2(114, 12)
@@ -926,7 +1185,7 @@ func _build_quest_ui() -> void:
 		quest_panel.add_child(line)
 		quest_lines.append(line)
 	quest_hint = Label.new()
-	quest_hint.position = Vector2(6, 78)
+	quest_hint.position = Vector2(6, 90)
 	quest_hint.size = Vector2(114, 24)
 	quest_hint.add_theme_font_override("font", font)
 	quest_hint.add_theme_font_size_override("font_size", 5)
@@ -949,7 +1208,7 @@ func _update_quest_ui() -> void:
 		return
 	var info := _quest_target()
 	var step := int(info["step"])
-	var texts := ["找到灯塔透镜", "点亮灯塔", "取得潮门钥匙", "进入龙骨祭坛 / 击败斯卡", "点燃第三座誓火石碑"]
+	var texts := ["找到灯塔透镜", "点亮灯塔", "校准三面铜镜", "取得潮门钥匙", "进入龙骨祭坛 / 击败斯卡", "点燃第三座誓火石碑"]
 	for i in texts.size():
 		var prefix := "○ "
 		var color := Color(0.6, 0.58, 0.54)
@@ -961,7 +1220,7 @@ func _update_quest_ui() -> void:
 			color = Color(1.0, 0.82, 0.48)
 		quest_lines[i].text = prefix + texts[i]
 		quest_lines[i].add_theme_color_override("font_color", color)
-	if step >= 5:
+	if step >= 6:
 		quest_hint.text = "赤烬海岸已净化"
 		objective_beacon.visible = false
 		return
@@ -981,15 +1240,29 @@ func _quest_target() -> Dictionary:
 		return {"name": "沉船湾", "target": WRECK_DOOR_POS, "step": 0}
 	if not Global.coast_lighthouse_lit:
 		return {"name": "灯塔", "target": LIGHTHOUSE_INTERACT, "step": 1}
+	if not Global.coast_beam_aligned:
+		return {"name": "铜镜", "target": _quest_mirror_target(), "step": 2}
 	if not Global.coast_tide_key:
 		var key_target: Vector2 = TIDE_KEY_POS if Global.coast_tide_guardian_defeated else TIDE_GUARD_POS
-		return {"name": "潮门钥匙", "target": key_target, "step": 2}
+		return {"name": "潮门钥匙", "target": key_target, "step": 3}
 	if not Global.ska_defeated:
 		var target: Vector2 = BOSS_POS if boss_started else Vector2(1720, 700)
-		return {"name": "龙骨祭坛", "target": target, "step": 3}
+		return {"name": "龙骨祭坛", "target": target, "step": 4}
 	if not Global.third_stele_lit:
-		return {"name": "第三座石碑", "target": STELE_POS, "step": 4}
-	return {"name": "已完成", "target": player.global_position, "step": 5}
+		return {"name": "第三座石碑", "target": STELE_POS, "step": 5}
+	return {"name": "已完成", "target": player.global_position, "step": 6}
+
+
+func _quest_mirror_target() -> Vector2:
+	for data in MIRROR_DATA:
+		if bool(Global.get(str(data["flag"]))):
+			continue
+		if not bool(Global.get(str(data["guard_flag"]))):
+			var guard_pos: Vector2 = data["guard_pos"]
+			return guard_pos
+		var mirror_pos: Vector2 = data["pos"]
+		return mirror_pos
+	return LIGHTHOUSE_INTERACT
 
 
 func _direction_arrow(delta: Vector2) -> String:
@@ -1066,6 +1339,7 @@ func _update_tide(delta: float) -> void:
 				tide_timer = TIDE_LOW_TIME
 				_set_tide_alpha(0.0)
 				hud.call("show_notice", "赤潮退去了")
+	_refresh_tide_passages()
 	_update_tide_ui()
 	if tide_state == "high":
 		tide_damage_timer -= delta
@@ -1110,6 +1384,12 @@ func on_scene_process(delta: float) -> void:
 
 	var interact_text := "[%s]" % Settings.binding_text("interact")
 
+	if player.global_position.distance_to(RETURN_POS) <= 40.0:
+		hud.call("show_interaction", "%s 返回白鹿镇公会" % interact_text)
+		if Input.is_action_just_pressed("interact"):
+			Global.return_to_white_deer_town()
+		return
+
 	if player.global_position.distance_to(PILGRIM_POS) <= 42.0:
 		hud.call("show_interaction", "%s 与迷途的朝圣者交谈" % interact_text)
 		if Input.is_action_just_pressed("interact"):
@@ -1123,7 +1403,26 @@ func on_scene_process(delta: float) -> void:
 			hud.call("show_dialog", "守夜人残记", "赤潮不是海。龙骨山下的东西醒来后，海水就被染红了。灯塔的光能暂时压住它，但透镜必须从沉船里取回。")
 		return
 
+	for data in MIRROR_DATA:
+		var mirror_pos: Vector2 = data["pos"]
+		if player.global_position.distance_to(mirror_pos) > 58.0:
+			continue
+		var id := str(data["id"])
+		if bool(Global.get(str(data["flag"]))):
+			hud.call("show_interaction", "%s · 已对准" % str(data["label"]))
+			return
+		if not bool(Global.get(str(data["guard_flag"]))):
+			hud.call("show_interaction", "%s · 先击败铜镜守卫" % str(data["label"]))
+			return
+		hud.call("show_interaction", "%s 转动%s" % [interact_text, str(data["label"])])
+		if Input.is_action_just_pressed("interact"):
+			_rotate_mirror(id)
+		return
+
 	if player.global_position.distance_to(WRECK_DOOR_POS) <= 44.0:
+		if tide_state != "low":
+			hud.call("show_interaction", "赤潮太高，沉船入口被淹 · 等退潮再来")
+			return
 		hud.call("show_interaction", "%s 进入沉船" % interact_text)
 		if Input.is_action_just_pressed("interact"):
 			travel_to("res://scenes/coast/wreck_interior.tscn", "entrance")
@@ -1160,7 +1459,7 @@ func on_scene_process(delta: float) -> void:
 		return
 
 	if not tide_gate_open and not Global.ska_defeated and player.global_position.distance_to(Vector2(1720, 700)) <= 56.0:
-		hud.call("show_interaction", "潮门被锁住了：需要灯塔光束与潮门钥匙")
+		hud.call("show_interaction", "潮门被锁住了：需要校准灯塔光束与潮门钥匙")
 		return
 
 	if (
@@ -1218,8 +1517,10 @@ func _on_boss_died() -> void:
 		tide_panel.visible = true
 	_set_gate(true)
 	SaveGame.save_game("赤烬海岸")
-	hud.call("show_banner", "斯卡倒下了", "赤潮正在退去", 2.2)
+	hud.call("show_banner", "斯卡倒下了", "祭坛后的誓火石碑显现了", 2.6)
 	refresh_objective()
+	if player != null and is_instance_valid(player) and player.has_method("set_input_locked"):
+		player.call("set_input_locked", false)
 
 
 func on_after_revive() -> void:
@@ -1232,11 +1533,12 @@ func on_after_revive() -> void:
 	for layer in boss_tide_overlays:
 		if layer != null and is_instance_valid(layer):
 			layer.modulate.a = 0.0
-	if (Global.coast_lighthouse_lit and Global.coast_tide_key) or Global.ska_defeated:
+	if (Global.coast_lighthouse_lit and Global.coast_beam_aligned and Global.coast_tide_key) or Global.ska_defeated:
 		_set_gate(true)
 	tide_state = "low"
 	tide_timer = 18.0
 	_set_tide_alpha(0.0)
+	_refresh_tide_passages()
 	if tide_panel != null:
 		tide_panel.visible = true
 	refresh_objective()

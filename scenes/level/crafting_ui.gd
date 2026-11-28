@@ -9,7 +9,6 @@ const RECIPES := [
 	{"page": 1, "type": "axe", "req": {"slime": 2, "shell": 2, "gland": 6}},
 	{"page": 1, "type": "sword", "req": {"slime": 2, "shell": 1, "gland": 5}},
 	{"page": 1, "type": "armor", "req": {"shell": 3, "gland": 3}},
-	{"page": 0, "type": "material", "req": {"herb": 3, "vine": 3, "gland": 3, "shell": 2, "slime": 2}},
 	{"page": 0, "type": "mask", "req": {"gland": 2, "shell": 2, "slime": 2}},
 ]
 
@@ -19,7 +18,6 @@ const ITEM_ICONS := {
 	"gland": preload("res://graphics/items/gland.png"),
 	"shell": preload("res://graphics/items/shell.png"),
 	"slime": preload("res://graphics/items/slime.png"),
-	"material": preload("res://graphics/items/material.png"),
 	"mask": preload("res://graphics/items/mask.png"),
 }
 const ITEM_NAMES := {
@@ -28,7 +26,6 @@ const ITEM_NAMES := {
 	"gland": "鳞片",
 	"shell": "岩甲",
 	"slime": "灰烬",
-	"material": "建材",
 	"mask": "护符",
 }
 const ICON_FIST := preload("res://graphics/ui/weapon_fist.png")
@@ -119,11 +116,9 @@ func _recipe_title(recipe: Dictionary, locked: bool) -> String:
 		"axe": title = "斧头 · 重击"
 		"sword": title = "剑 · 轻击"
 		"armor": title = "护甲 II"
-		"material": title = "建材 · 修桥"
 		"mask": title = "灰烬护符"
 	if locked:
 		match recipe["type"]:
-			"material": title += " · 需斧剑+护甲"
 			"mask": title += " · 需修桥"
 	return title
 
@@ -140,7 +135,6 @@ func _recipe_icon(recipe: Dictionary) -> Texture2D:
 		"axe": return ICON_AXE
 		"sword": return ICON_SWORD
 		"armor": return ICON_ARMOR
-		"material": return ITEM_ICONS["material"]
 		"mask": return ITEM_ICONS["mask"]
 	return null
 
@@ -244,7 +238,7 @@ func _build_recipe_row(recipe: Dictionary, cost: Dictionary, maxed: bool, locked
 
 	var btn := Button.new()
 	if maxed:
-		btn.text = "已拥有" if recipe["type"] in ["axe", "sword", "material", "mask"] else "已满"
+		btn.text = "已拥有" if recipe["type"] in ["axe", "sword", "mask"] else "已满"
 	else:
 		btn.text = "锁定" if locked else "合成"
 	btn.custom_minimum_size = Vector2(36, 16)
@@ -278,8 +272,6 @@ func _is_maxed(type: String) -> bool:
 			return player.has_sword
 		"armor":
 			return player.armor_tier >= 2
-		"material":
-			return Global.material_crafted
 		"mask":
 			return Global.mask_crafted
 	return false
@@ -289,8 +281,6 @@ func _is_locked(type: String) -> bool:
 	if player == null:
 		return false
 	match type:
-		"material":
-			return not ((player.has_axe or player.has_sword) and player.armor_tier >= 2)
 		"mask":
 			return not Global.bridge_repaired
 	return false
@@ -326,10 +316,6 @@ func _craft(recipe: Dictionary) -> void:
 		"armor":
 			player.call("equip_tier2_armor")
 			_notice("获得二级护甲：防御力 → %d" % player.defense)
-		"material":
-			Global.add_item("material", 1)
-			Global.material_crafted = true
-			_notice("获得建材")
 		"mask":
 			Global.add_item("mask", 1)
 			Global.mask_crafted = true

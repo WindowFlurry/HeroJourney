@@ -161,6 +161,9 @@ func _refresh_objective() -> void:
 	elif not Global.coast_lighthouse_lit:
 		set_objective("点亮灯塔")
 		set_tutorial("走到灯室中央，把透镜放回灯座")
+	elif not Global.coast_beam_aligned:
+		set_objective("返回海岸，校准三面铜镜")
+		set_tutorial("崖顶、海蚀洞、沉船桅杆各有一面铜镜")
 	elif not Global.coast_tide_key:
 		set_objective("返回海岸，取得潮门钥匙")
 		set_tutorial("高台上的熔岩蛇蜥持有潮门钥匙")
@@ -208,7 +211,7 @@ func _light_lighthouse() -> void:
 	if core != null and is_instance_valid(core):
 		core.visible = true
 	pedestal_glow.modulate = Color(1.0, 0.72, 0.28, 0.38)
-	hud.call("show_notice", "灯塔重新亮起，龙骨祭坛的潮门已经打开")
+	hud.call("show_notice", "灯塔重新亮起，海岸上的三面铜镜需要校准")
 	_refresh_objective()
 	Sfx.play("craft", 1.0, 1.5)
 
